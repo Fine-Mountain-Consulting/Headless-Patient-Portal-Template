@@ -1,0 +1,20 @@
+{
+  "name": "@headless/server-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Runs the headless portal on any Node 22 host (Docker, Render, Fly, a VM). Serves the web app and the API from one origin.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "node --watch --env-file-if-exists=../../.env dist/main.js"
+  },
+  "dependencies": {
+    "@headless/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@headless/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Platform-neutral server core: Knack client, app model, access policy derived from Knack pages, sessions, and the HTTP API. No platform imports.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0"
+  }
+}

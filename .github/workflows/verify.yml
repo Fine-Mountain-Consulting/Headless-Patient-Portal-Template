@@ -1,0 +1,30 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Keys first: a leaked credential should fail fast, before anything else runs.
+      - run: npm run check:keys
+      - run: npm run build -w @headless/core
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build -w @headless/web
+      - run: npm run build -w @headless/server-node
+      # Check the built bundle too.
+      - run: npm run check:keys

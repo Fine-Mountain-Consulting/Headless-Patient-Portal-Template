@@ -1,0 +1,26 @@
+{
+  "name": "headless-knack-portal",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/server-node",
+    "packages/server-firebase",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "access": "node scripts/access-report.mjs",
+    "dev": "npm run build -w @headless/core && npm run sync && npm run build -w @headless/server-node && node scripts/dev.mjs",
+    "build": "npm run build -w @headless/core && npm run build -w @headless/web && npm run build -w @headless/server-node",
+    "build:firebase": "npm run build -w @headless/core && npm run build -w @headless/web && npm run build -w @headless/server-firebase",
+    "start": "node packages/server-node/dist/main.js",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @headless/core",
+    "check:keys": "bash scripts/check-no-keys.sh",
+    "verify": "npm run check:keys && npm run build -w @headless/core && npm run typecheck && npm test && npm run build -w @headless/web && npm run build -w @headless/server-node"
+  }
+}

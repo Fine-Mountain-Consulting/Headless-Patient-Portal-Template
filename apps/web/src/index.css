@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "@fmc/knack-ui/theme.css";
+
+/*
+ * Re-skin: override the brand scale AFTER the knack-ui import. Never edit
+ * component code for a re-skin. This is the one place a customer changes to
+ * put their own colour on the portal.
+ *
+ * A calm clinical teal rather than FMC crimson: red reads as "error" or
+ * "urgent" in a health context. 600 (buttons) holds 5.4:1 against white text,
+ * which passes WCAG AA for normal text.
+ */
+@theme {
+  --color-brand-50: #effcf9;
+  --color-brand-100: #c9f4ec;
+  --color-brand-200: #94e7d9;
+  --color-brand-300: #57d1c0;
+  --color-brand-400: #24b3a3;
+  --color-brand-500: #0d9488;
+  --color-brand-600: #0f766e;
+  --color-brand-700: #115e59;
+  --color-brand-800: #134e4a;
+  --color-brand-900: #042f2e;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  /* Room for the mobile tab bar and the iPhone home indicator. */
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+  }
+}
+
+/* Rich text from Knack (test results, messages, instructions), sanitized. */
+.prose-knack {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.prose-knack p {
+  margin: 0 0 0.75em;
+}
+.prose-knack p:last-child {
+  margin-bottom: 0;
+}
+.prose-knack ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75em;
+}
+.prose-knack ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75em;
+}
+.prose-knack strong,
+.prose-knack b {
+  font-weight: 600;
+}
+.prose-knack a {
+  color: var(--color-brand-700);
+  text-decoration: underline;
+}
+.prose-knack table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+  font-size: 0.875rem;
+}
+.prose-knack th,
+.prose-knack td {
+  border: 1px solid var(--color-steel-200);
+  padding: 0.375rem 0.5rem;
+  text-align: left;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "$comment": "What the Patient Portal screens use from the customer's Knack app, by Knack object and field NAME (keys differ between copies of a template). `entities` are required: sync fails without them. `optional` ones switch a feature off when missing. Renames are absorbed by the slug lock. Fields not listed here still appear in the generic screens wherever a Knack page shows them.",
+  "template": "patient-portal",
+  "roles": {
+    "patient": "Patients",
+    "doctor": "Doctors",
+    "staff": "Medical Staff",
+    "admin": "Headless Admin"
+  },
+  "entities": {
+    "Patients": [
+      "Name",
+      "Email",
+      "Doctor",
+      "Date of Birth",
+      "Phone",
+      "Address",
+      "Emergency Contact",
+      "Emergency Phone"
+    ],
+    "Doctors": [
+      "Name",
+      "Email",
+      "Specialty",
+      "Phone"
+    ],
+    "Medical Staff": [
+      "Name",
+      "Email"
+    ],
+    "Headless Admin": [
+      "Name",
+      "Email"
+    ],
+    "Appointments": [
+      "Date of Appointment",
+      "Patient",
+      "Doctor",
+      "Reason for Appointment",
+      "Status",
+      "Duration",
+      "Notes"
+    ],
+    "Test Results": [
+      "Patient",
+      "Doctor",
+      "Test Type",
+      "Test Date",
+      "Results",
+      "Status",
+      "Lab Reference Number"
+    ],
+    "Messages": [
+      "Doctor",
+      "Patient",
+      "Subject",
+      "Message Content",
+      "Date Sent",
+      "Priority",
+      "Read Status",
+      "Medical Staff"
+    ],
+    "Prescriptions": [
+      "Patient",
+      "Doctor",
+      "Medication Name",
+      "Dosage",
+      "Instructions",
+      "Date Prescribed",
+      "Refills Remaining",
+      "Status"
+    ],
+    "Documents": [
+      "Patient",
+      "Document Type",
+      "Upload Date",
+      "File",
+      "Description"
+    ],
+    "Notes": [
+      "Date",
+      "Note",
+      "Patient",
+      "Doctor",
+      "Appointment"
+    ],
+    "Emergency Contacts": [
+      "Name",
+      "Email",
+      "Phone",
+      "Address",
+      "Patient"
+    ]
+  },
+  "optional": {
+    "Doctors": [
+      "Available Days",
+      "Day Starts",
+      "Day Ends",
+      "Appointment Length",
+      "Online Booking"
+    ],
+    "Doctor Time Off": [
+      "Starts",
+      "Ends",
+      "Reason",
+      "Doctor"
+    ]
+  },
+  "booking": {
+    "$comment": "Online booking. Everything is matched by Knack name. The doctor schedule fields are optional: missing ones fall back to Mon-Fri, 9-5, 30-minute appointments.",
+    "appointments": "Appointments",
+    "date": "Date of Appointment",
+    "doctor": "Doctor",
+    "patient": "Patient",
+    "reason": "Reason for Appointment",
+    "duration": "Duration",
+    "status": "Status",
+    "cancelledStatuses": [
+      "Cancelled"
+    ],
+    "doctors": "Doctors",
+    "specialty": "Specialty",
+    "availableDays": "Available Days",
+    "dayStarts": "Day Starts",
+    "dayEnds": "Day Ends",
+    "appointmentLength": "Appointment Length",
+    "onlineBooking": "Online Booking",
+    "timeOff": "Doctor Time Off",
+    "timeOffStarts": "Starts",
+    "timeOffEnds": "Ends",
+    "timeOffDoctor": "Doctor"
+  }
+}

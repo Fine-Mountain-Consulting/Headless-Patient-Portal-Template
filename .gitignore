@@ -1,0 +1,28 @@
+node_modules/
+dist/
+lib/
+*.log
+.DS_Store
+
+# Secrets and per-deployment config. Never commit these.
+.env
+.env.*
+!.env.example
+*.pem
+service-account*.json
+
+# The customer's Knack app snapshot. It describes their schema and pages, so
+# it belongs to their deployment, not to this public template.
+.knack/
+
+# Local data written by the Node server (audit log). May contain PHI.
+data/
+
+# FMC-internal reference material; not part of the public template.
+.standards/
+
+.firebase/
+firebase-debug.log
+
+# TypeScript incremental build info
+*.tsbuildinfo

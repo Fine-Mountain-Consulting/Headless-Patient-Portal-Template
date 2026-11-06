@@ -1,0 +1,25 @@
+{
+  "name": "@headless/server-firebase",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Firebase host: one Cloud Function (v2, Cloud Run) behind Hosting rewrites. Core is bundled in, so Firebase installs only what is listed here.",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "devDependencies": {
+    "@headless/core": "0.1.0",
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  }
+}
