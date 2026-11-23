@@ -92,7 +92,9 @@ Patients receive only *when* doctors are busy, never whose appointment it is. Ev
 
 ### Firebase (recommended)
 
-One Cloud Function (`api`) behind Firebase Hosting, same origin. The activity log is stored in Firestore.
+One Cloud Function (`api`) serves the whole site: the built web app and the API, from one origin. The activity log is stored in Firestore.
+
+**No Firebase Hosting.** Hosting is not a covered service under Google's HIPAA BAA, and a Hosting rewrite would carry every patient request through it. Cloud Functions, Cloud Run and Firestore are covered. One origin also keeps the session cookie first-party.
 
 ```bash
 npm run sync
@@ -101,8 +103,11 @@ firebase functions:secrets:set SESSION_SECRET
 # packages/server-firebase/.env (not committed): KNACK_APP_ID, KNACK_API_HOST,
 #   COMPLIANCE_TIER, APP_NAME, SYNC_MINUTES, …
 npm run build:firebase
-firebase deploy
+firebase deploy --only functions,firestore
+gcloud run services describe api --region us-central1 --format='value(status.url)'
 ```
+
+Open the **Cloud Run URL** that last command prints (`https://api-….run.app`). Don't use `cloudfunctions.net/api`: that address puts `/api` in front of every path, and the app's own `/api/...` calls would miss. For your own domain, map it to the Cloud Run service (Cloud Run domain mapping, or an HTTPS load balancer). Both are covered. Don't put Firebase Hosting in front.
 
 `firestore.rules` deny all client access; only the function reads or writes Firestore.
 
@@ -119,9 +124,9 @@ Put it behind TLS. The activity log goes to `DATA_DIR/audit.jsonl`, which may co
 
 The headless app can only be as compliant as everything it runs on. Before the first real patient record:
 
-1. **Business Associate Agreements** with Knack (HIPAA plan, GovCloud), your cloud (Google Cloud BAA for Firebase), and anything else that touches PHI.
+1. **Business Associate Agreements** with Knack (HIPAA plan, GovCloud), your cloud (Google Cloud BAA, which covers Cloud Functions, Cloud Run and Firestore but **not** Firebase Hosting or plain Firebase Auth), and anything else that touches PHI.
 2. **Knack HIPAA tenant.** Set `KNACK_API_HOST=https://usgc-api.knack.com/v1`. The commercial host *accepts* writes for a GovCloud app, answers 200, and drops them. With `COMPLIANCE_TIER=hipaa` the server refuses the commercial host unless `ALLOW_COMMERCIAL_HOST_FOR_DEMO=true`, which is only for synthetic demo data.
-3. **Front door.** On Firebase, confirm Hosting's status on Google's BAA-covered list, or put a covered HTTPS load balancer in front of the function.
+3. **Front door.** The function is the front door, with no Firebase Hosting in front of it (see Deploy). If you add a custom domain, use Cloud Run domain mapping or an HTTPS load balancer. This template signs people in with its own Knack-backed session, not Firebase Auth. If you add Firebase sign-in, upgrade it to **Identity Platform**, which the BAA covers; plain Firebase Auth is not.
 4. **Retention** for the activity log, agreed with the practice. Leave `AUDIT_VALUES=false` unless the practice needs before/after values (which makes the log itself PHI).
 5. **Lock down Knack's own live app.** It is still reachable at your Knack URL. Remove public pages, or turn the live app off once the headless portal replaces it.
 6. **Never run `seed-demo.mjs` against a real tenant.** It refuses GovCloud hosts.

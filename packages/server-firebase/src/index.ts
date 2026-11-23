@@ -13,7 +13,8 @@ import { readFileSync } from 'node:fs';
 import { onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
-import { HeadlessApp, loadConfig, type AppSnapshot } from '@headless/core';
+import { fileURLToPath } from 'node:url';
+import { HeadlessApp, loadConfig, SECURITY_HEADERS, staticResponse, type AppSnapshot } from '@headless/core';
 import { FirestoreAuditStore } from './firestoreAudit.js';
 
 const KNACK_API_KEY = defineSecret('KNACK_API_KEY');
@@ -34,6 +35,9 @@ const getApp = (): HeadlessApp => {
   return app;
 };
 
+/** The built web app, copied beside the bundle by build.mjs. */
+const WEB_DIST = fileURLToPath(new URL('./web/', import.meta.url));
+
 export const api = onRequest(
   {
     region: process.env.FUNCTION_REGION ?? 'us-central1',
@@ -44,14 +48,33 @@ export const api = onRequest(
     timeoutSeconds: 120,
     // Cold starts are paid by whoever signs in first. Set minInstances: 1
     // if that matters for this deployment (a small standing cost).
-    // Hosting rewrites call the function as an anonymous client, so the
-    // service must accept unauthenticated invocations. That is not data
-    // access: every route but /api/config and /api/session/login requires a
-    // valid session cookie. On the HIPAA tier, see docs/hipaa.md about putting
-    // a covered front door (HTTPS load balancer) in front instead of Hosting.
+    // Browsers load the app and call /api here directly, so the service must
+    // accept unauthenticated invocations. That is not data access: every
+    // route but /api/config and /api/session/login requires a valid session
+    // cookie.
     invoker: 'public',
   },
   async (req, res) => {
+    /*
+     * DOC-448 — this function is the whole site: the built web app and the API, one
+     * origin, no Firebase Hosting. Hosting is not a covered service under Google's
+     * HIPAA BAA, and a rewrite through it carried every patient request. One origin
+     * also keeps the session cookie first-party, which a direct cross-origin call to
+     * the function would not. Open the service's Cloud Run URL, not cloudfunctions.net:
+     * that URL prefixes the path with /api, which the web app's own /api calls would
+     * then lose.
+     */
+    if (!req.path.startsWith('/api/')) {
+      const out = req.method === 'GET' || req.method === 'HEAD'
+        ? await staticResponse(WEB_DIST, req.path)
+        : new Response(null, { status: 405, headers: { ...SECURITY_HEADERS, allow: 'GET, HEAD' } });
+      res.status(out.status);
+      out.headers.forEach((value, key) => res.setHeader(key, value));
+      if (req.method === 'HEAD' || !out.body) { res.end(); return; }
+      res.end(Buffer.from(await out.arrayBuffer()));
+      return;
+    }
+
     const proto = String(req.headers['x-forwarded-proto'] ?? 'https').split(',')[0];
     const host = String(req.headers['x-forwarded-host'] ?? req.headers.host ?? 'localhost');
     const headers = new Headers();
@@ -69,6 +92,8 @@ export const api = onRequest(
 
     const response = await getApp().handle(request, ip);
     res.status(response.status);
+    // Hosting used to add these. Now nothing sits in front, so the function does.
+    for (const [key, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(key, value);
     response.headers.forEach((value, key) => {
       if (key !== 'set-cookie') res.setHeader(key, value);
     });
