@@ -8,11 +8,11 @@
  * arrived over HTTPS.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { extname, join, normalize, resolve } from 'node:path';
+import { readFile, rename, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
-import { HeadlessApp, loadConfig, type AppSnapshot } from '@headless/core';
+import { HeadlessApp, loadConfig, staticResponse, type AppSnapshot } from '@headless/core';
 import { FileAuditStore } from './fileAudit.js';
 import { SECURITY_HEADERS } from './headers.js';
 
@@ -38,18 +38,6 @@ const app = new HeadlessApp({
     await rename(tmp, snapshotPath);
   },
 });
-
-const TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.json': 'application/json',
-  '.woff2': 'font/woff2',
-  '.webmanifest': 'application/manifest+json',
-};
 
 const toRequest = (req: IncomingMessage): Request => {
   const proto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0] ?? 'http';
@@ -85,26 +73,7 @@ const send = async (res: ServerResponse, response: Response): Promise<void> => {
 };
 
 const serveStatic = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-  const urlPath = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
-  const candidate = normalize(join(webDist, urlPath));
-  const inside = candidate.startsWith(webDist);
-  let file = join(webDist, 'index.html');
-  if (inside) {
-    const info = await stat(candidate).catch(() => null);
-    if (info?.isFile()) file = candidate;
-  }
-  const body = await readFile(file).catch(() => null);
-  if (!body) {
-    res.writeHead(404, { ...SECURITY_HEADERS, 'content-type': 'text/plain' }).end('Not built. Run "npm run build".');
-    return;
-  }
-  const immutable = file.includes(`${join(webDist, 'assets')}`);
-  res.writeHead(200, {
-    ...SECURITY_HEADERS,
-    'content-type': TYPES[extname(file)] ?? 'application/octet-stream',
-    'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
-  });
-  res.end(body);
+  await send(res, await staticResponse(webDist, new URL(req.url ?? '/', 'http://x').pathname));
 };
 
 const server = createServer(async (req, res) => {

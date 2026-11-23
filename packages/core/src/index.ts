@@ -7,3 +7,4 @@ export { HeadlessApp, type CoreDeps } from './api/app.js';
 export { MemoryAuditStore, filterEvents, type AuditStore, type AuditEvent, type AuditQuery } from './store/audit.js';
 export { checkTemplate, carryForward, diffSnapshots, type TemplateCheck } from './model/sync.js';
 export { lockOf, type SlugLock } from './model/model.js';
+export { SECURITY_HEADERS, staticResponse } from './http/static.js';
