@@ -92,3 +92,14 @@ test('switches stored elsewhere (another instance) are picked up', async () => {
   const schema = await call(app, patient, '/api/schema');
   assert.equal(schema.body.entities.find((e: any) => e.slug === 'results').can.create, true);
 });
+
+test('the page-load session check answers 200 null when nobody is signed in', async () => {
+  const app = new HeadlessApp({ config, snapshot: snap, audit: new MemoryAuditStore(), features: new MemoryFeatureStore() });
+  const anon = await call(app, '', '/api/session');
+  assert.equal(anon.status, 200);
+  assert.equal(anon.body, null);
+  // Everything else still needs a session.
+  assert.equal((await call(app, '', '/api/schema')).status, 401);
+  const patient = await cookieFor(['all_users', 'profile_2'], { object_1: id(1), object_2: id(11) });
+  assert.equal((await call(app, patient, '/api/session')).body.user.email, 'x@example.com');
+});

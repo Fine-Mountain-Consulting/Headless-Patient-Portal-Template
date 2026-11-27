@@ -76,7 +76,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
 
   // Restore on load.
   useEffect(() => {
-    api<Me>('/session')
+    api<Me | null>('/session')
       .then((m) => setMe(m))
       .catch(() => setMe(null))
       .finally(() => setLoading(false));
