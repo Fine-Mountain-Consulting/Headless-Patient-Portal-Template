@@ -1,0 +1,26 @@
+# This repo doesn't accept outside contributions. Close any pull request whose
+# author isn't part of Fine Mountain Consulting, with a polite note.
+#
+# pull_request_target runs in this repo's context (so it may close the PR), but
+# it never checks out or runs the pull request's code: only the gh CLI below.
+name: Close outside pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    if: ${{ !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close with a note
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr close "$PR" --repo "$REPO" --comment "Thanks for your interest. This repository doesn't accept outside contributions, so this pull request has been closed automatically. You're welcome to fork it and change your copy under the MIT license. For help with setup or changes, contact Fine Mountain Consulting: https://finemountainconsulting.com"
