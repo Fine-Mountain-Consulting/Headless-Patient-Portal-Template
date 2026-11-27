@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Button, DataTable, SearchInput, Select, type Column, type ColumnEdit, type SortState } from '@fmc/knack-ui';
+import { Button, DataTable, SearchInput, Select, type Column, type ColumnEdit, type SortState } from '../ui';
 import { refName, useList, useUpdate, type Filter, type Rec } from '../lib/records';
 import { fieldOf, isSystemField, type EntityInfo, type FieldInfo } from '../lib/schema';
 import { useTablePrefs } from '../lib/tablePrefs';

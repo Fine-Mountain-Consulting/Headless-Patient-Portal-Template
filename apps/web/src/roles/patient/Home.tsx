@@ -10,7 +10,7 @@ import {
   ClockIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
-import { cx } from '@fmc/knack-ui';
+import { cx } from '../../ui';
 import { useSession } from '../../lib/session';
 import { useList, asText, refName, type Rec } from '../../lib/records';
 import { entityOf, useSchema } from '../../lib/schema';

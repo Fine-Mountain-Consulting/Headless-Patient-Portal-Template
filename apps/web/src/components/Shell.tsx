@@ -2,7 +2,7 @@ import { Fragment, type ComponentType, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react';
 import { ArrowRightStartOnRectangleIcon, ArrowsRightLeftIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { AppShell, cx, type NavSection } from '@fmc/knack-ui';
+import { AppShell, cx, type NavSection } from '../ui';
 import { useSession } from '../lib/session';
 import { experiencesFor, rememberExperience, type Experience } from '../lib/experiences';
 import { Avatar } from './ui';

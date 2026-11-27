@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import DOMPurify from 'dompurify';
 import { Link } from 'react-router-dom';
-import { cx, StatusBadge, ToastRegion, useToasts, type BadgeTone } from '@fmc/knack-ui';
+import { cx, StatusBadge, ToastRegion, useToasts, type BadgeTone } from '../ui';
 import { formatDayNum, formatMonthShort, formatWeekday, initials } from '../lib/format';
 
 // ── Toasts (app-wide) ─────────────────────────────────────────────────────

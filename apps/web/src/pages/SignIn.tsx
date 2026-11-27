@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { CalendarDaysIcon, ChatBubbleLeftRightIcon, EyeIcon, EyeSlashIcon, LockClosedIcon, BeakerIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { Button, FormField, TextInput } from '@fmc/knack-ui';
+import { Button, FormField, TextInput } from '../ui';
 import { ApiError } from '../lib/api';
 import { useSession } from '../lib/session';
 import { useConfig } from '../lib/config';

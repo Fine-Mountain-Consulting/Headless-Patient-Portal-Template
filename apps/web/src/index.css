@@ -1,8 +1,8 @@
 @import "tailwindcss";
-@import "@fmc/knack-ui/theme.css";
+@import "./ui/theme.css";
 
 /*
- * Re-skin: override the brand scale AFTER the knack-ui import. Never edit
+ * Re-skin: override the brand scale AFTER the theme import. Never edit
  * component code for a re-skin. This is the one place a customer changes to
  * put their own colour on the portal.
  *

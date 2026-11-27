@@ -12,7 +12,7 @@ import {
   ListBulletIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
-import { Button, cx, MonthCalendar, PageHeader, SearchInput, StatTile, Tabs, type CalendarEvent } from '@fmc/knack-ui';
+import { Button, cx, MonthCalendar, PageHeader, SearchInput, StatTile, Tabs, type CalendarEvent } from '../../ui';
 import { useSession } from '../../lib/session';
 import { asAddress, asName, asText, refName, useCreate, useList, useRecord, type Rec } from '../../lib/records';
 import { entityOf, parentFieldFor, useSchema, type EntityInfo } from '../../lib/schema';

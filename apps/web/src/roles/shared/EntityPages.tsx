@@ -6,7 +6,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeftIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { Button, ConfirmDialog, PageHeader, Tabs } from '@fmc/knack-ui';
+import { Button, ConfirmDialog, PageHeader, Tabs } from '../../ui';
 import { EntityTable } from '../../components/EntityTable';
 import { CreateDrawer, RecordDrawer, recordTitle } from '../../components/RecordDrawer';
 import { RecordFields, RecordForm } from '../../components/fields';

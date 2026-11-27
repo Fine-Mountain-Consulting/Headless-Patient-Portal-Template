@@ -18,7 +18,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { Button, ConfirmDialog, cx, MonthCalendar, PageHeader, type CalendarEvent } from '@fmc/knack-ui';
+import { Button, ConfirmDialog, cx, MonthCalendar, PageHeader, type CalendarEvent } from '../../ui';
 import { useSession } from '../../lib/session';
 import { asAddress, asFile, asText, fileHref, refName, useCreate, useDelete, useList, type Rec } from '../../lib/records';
 import { entityOf, useSchema, type EntityInfo } from '../../lib/schema';

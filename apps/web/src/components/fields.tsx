@@ -3,7 +3,7 @@
  */
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowDownTrayIcon, CloudArrowUpIcon, DocumentIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Button, cx, FormField, SearchableSelect, Select, Switch, TextArea, TextInput, type SearchOption } from '@fmc/knack-ui';
+import { Button, cx, FormField, SearchableSelect, Select, Switch, TextArea, TextInput, type SearchOption } from '../ui';
 import { uploadWithProgress, ApiError } from '../lib/api';
 import { formatDate, formatDateTime, fileSize, toWallClock } from '../lib/format';
 import {

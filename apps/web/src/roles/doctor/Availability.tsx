@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDaysIcon, ClockIcon, PlusIcon, TrashIcon, SunIcon } from '@heroicons/react/24/outline';
-import { Button, ConfirmDialog, cx, FormField, PageHeader, Select, Switch, TextInput } from '@fmc/knack-ui';
+import { Button, ConfirmDialog, cx, FormField, PageHeader, Select, Switch, TextInput } from '../../ui';
 import { useSession } from '../../lib/session';
 import { asText, useCreate, useDelete, useList, useRecord, useUpdate, type Rec } from '../../lib/records';
 import { entityOf, fieldOf, useSchema } from '../../lib/schema';
