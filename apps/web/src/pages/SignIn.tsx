@@ -7,6 +7,19 @@ import { useSession } from '../lib/session';
 import { useConfig } from '../lib/config';
 import { Brand, DevelopedBy } from '../components/Shell';
 import { useTitle } from '../lib/hooks';
+import { experiencesFor } from '../lib/experiences';
+import type { RoleInfo } from '../lib/session';
+
+/**
+ * Where to go after signing in. The page someone was on before a timeout is
+ * worth returning to, but only if this account can open it: after signing out
+ * of the admin screens and in as a patient, "/admin" is a 404, not a return.
+ */
+const destination = (from: string | undefined, roles: RoleInfo[]): string => {
+  if (!from || !from.startsWith('/') || from.startsWith('//')) return '/';
+  const path = from.split(/[?#]/)[0]!;
+  return experiencesFor(roles).some((x) => path === x.base || path.startsWith(`${x.base}/`)) ? from : '/';
+};
 
 const REASONS: Record<string, string> = {
   idle: 'You were signed out after a period of inactivity, to keep your health information private.',
@@ -29,7 +42,8 @@ export const SignIn = () => {
   const demo = config.data?.demo ?? null;
   useTitle('Sign in', appName);
 
-  if (me) return <Navigate to={(location.state as { from?: string } | null)?.from ?? '/'} replace />;
+  const from = (location.state as { from?: string } | null)?.from;
+  if (me) return <Navigate to={destination(from, me.roles)} replace />;
 
   const signInWith = async (address: string, secret: string) => {
     setError(null);
@@ -39,8 +53,8 @@ export const SignIn = () => {
     }
     setBusy(true);
     try {
-      await signIn(address.trim(), secret);
-      navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true });
+      const m = await signIn(address.trim(), secret);
+      navigate(destination(from, m.roles), { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Sign-in failed. Try again.');
       setPassword('');
