@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { CalendarDaysIcon, ChatBubbleLeftRightIcon, EyeIcon, EyeSlashIcon, LockClosedIcon, BeakerIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, ChatBubbleLeftRightIcon, EyeIcon, EyeSlashIcon, LockClosedIcon, BeakerIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { Button, FormField, TextInput } from '@fmc/knack-ui';
 import { ApiError } from '../lib/api';
 import { useSession } from '../lib/session';
@@ -26,20 +26,20 @@ export const SignIn = () => {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const appName = config.data?.appName ?? 'Patient Portal';
+  const demo = config.data?.demo ?? null;
   useTitle('Sign in', appName);
 
   if (me) return <Navigate to={(location.state as { from?: string } | null)?.from ?? '/'} replace />;
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const signInWith = async (address: string, secret: string) => {
     setError(null);
-    if (!email.trim() || !password) {
+    if (!address.trim() || !secret) {
       setError('Enter your email and password.');
       return;
     }
     setBusy(true);
     try {
-      await signIn(email.trim(), password);
+      await signIn(address.trim(), secret);
       navigate((location.state as { from?: string } | null)?.from ?? '/', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Sign-in failed. Try again.');
@@ -47,6 +47,15 @@ export const SignIn = () => {
     } finally {
       setBusy(false);
     }
+  };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    void signInWith(email, password);
+  };
+  const pickDemo = (login: { email: string; password: string }) => {
+    setEmail(login.email);
+    setPassword(login.password);
+    void signInWith(login.email, login.password);
   };
 
   return (
@@ -81,9 +90,15 @@ export const SignIn = () => {
               );
             })}
           </ul>
-          <p className="flex items-center gap-2 text-sm text-brand-100/80">
-            <LockClosedIcon className="h-4 w-4" aria-hidden="true" /> Private and encrypted. You’ll be signed out automatically when you step away.
-          </p>
+          {demo ? (
+            <p className="flex items-center gap-2 text-sm font-medium text-amber-200">
+              <ExclamationTriangleIcon className="h-4 w-4" aria-hidden="true" /> Demonstration only. All data shown is fictitious.
+            </p>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-brand-100/80">
+              <LockClosedIcon className="h-4 w-4" aria-hidden="true" /> Private and encrypted. You’ll be signed out automatically when you step away.
+            </p>
+          )}
         </div>
       </aside>
 
@@ -94,6 +109,18 @@ export const SignIn = () => {
           </div>
           <h2 className="text-2xl font-semibold tracking-tight text-steel-900">Sign in</h2>
           <p className="mt-1 text-sm text-steel-500">Use the email and password for your {appName.toLowerCase()} account.</p>
+
+          {demo && (
+            <div role="note" className="mt-6 rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="flex items-center gap-2 font-semibold uppercase tracking-wide">
+                <ExclamationTriangleIcon className="h-5 w-5 shrink-0" aria-hidden="true" /> This is a test site
+              </p>
+              <p className="mt-1">
+                No PHI is stored here, and no HIPAA compliance is implied or performed. All data is fictitious demo data. Don’t
+                enter real personal or health information.
+              </p>
+            </div>
+          )}
 
           {endReason && REASONS[endReason] && !error && (
             <div role="status" className="mt-6 rounded-xl border border-steel-200 bg-steel-50 px-4 py-3 text-sm text-steel-700">
@@ -146,7 +173,37 @@ export const SignIn = () => {
             </Button>
           </form>
 
-          {config.data?.passwordResetUrl && (
+          {demo && demo.logins.length > 0 && (
+            <section aria-labelledby="demo-logins" className="mt-8 rounded-xl border border-steel-200 bg-steel-50 p-4">
+              <h3 id="demo-logins" className="text-sm font-semibold text-steel-900">
+                Demo logins
+              </h3>
+              <p className="mt-0.5 text-xs text-steel-500">Pick a role to sign in and look around.</p>
+              <ul className="mt-3 space-y-2">
+                {demo.logins.map((login) => (
+                  <li key={login.email}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => pickDemo(login)}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-steel-200 bg-white px-3 py-2 text-left text-sm hover:border-brand-400 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-60"
+                    >
+                      <span className="font-medium text-steel-900">{login.label}</span>
+                      <span className="truncate font-mono text-xs text-steel-500">{login.email}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {new Set(demo.logins.map((l) => l.password)).size === 1 && (
+                <p className="mt-3 text-xs text-steel-500">
+                  Password for every demo login:{' '}
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-steel-800 ring-1 ring-steel-200">{demo.logins[0]!.password}</code>
+                </p>
+              )}
+            </section>
+          )}
+
+          {!demo && config.data?.passwordResetUrl && (
             <p className="mt-6 text-center text-sm">
               <a href={config.data.passwordResetUrl} className="font-medium text-brand-700 hover:underline" rel="noopener noreferrer">
                 Forgot your password?

@@ -463,7 +463,13 @@ export class HeadlessApp {
       (this.snapshot.accountSlug && this.snapshot.slug
         ? `https://${this.snapshot.accountSlug}.knack.com/${this.snapshot.slug}#home/forgot-password`
         : '');
-    return json(200, { appName: config.appName, passwordResetUrl: reset, tier: config.tier, timezone: this.model.timezone });
+    return json(200, {
+      appName: config.appName,
+      passwordResetUrl: reset,
+      tier: config.tier,
+      timezone: this.model.timezone,
+      demo: config.demoMode ? { logins: config.demoLogins } : null,
+    });
   }
 
   private async login(request: Request, ip: string, secure: boolean): Promise<Response> {
