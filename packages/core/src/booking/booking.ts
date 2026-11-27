@@ -1,9 +1,9 @@
 /**
  * Online booking.
  *
- * Who may book is decided by the Knack pages, like everything else: booking
- * is offered only to a role whose pages include a form that creates
- * Appointments with the date and doctor as inputs. The server writes the
+ * Booking is offered only to a role that may create Appointments with the
+ * date and doctor as inputs: through the "Online booking" portal feature
+ * (access/features.ts, switched on by an admin) or a Knack booking form. The server writes the
  * appointment the way that form would (forced connection to the signed-in
  * patient, the form's record rules), plus the appointment's length from the
  * doctor's schedule.

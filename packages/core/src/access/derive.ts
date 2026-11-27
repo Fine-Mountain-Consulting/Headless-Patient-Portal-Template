@@ -8,8 +8,10 @@
  * decisions out of the page tree and turns them into a policy the server
  * enforces. Nothing here is invented: if no page grants it, it is denied.
  *
- * The one addition is the "Headless Admin" role, which has no Knack pages and
- * is granted everything (see ADMIN_ROLE_NAME).
+ * Two additions, both outside this file: the "Headless Admin" role, which has
+ * no Knack pages and is granted everything (see ADMIN_ROLE_NAME), and portal
+ * features an admin switches on (features.ts), which add own-records-only
+ * grants for abilities the Knack template has no page for.
  *
  * Rules, in Knack's terms:
  *

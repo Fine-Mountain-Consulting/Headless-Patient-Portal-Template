@@ -69,7 +69,7 @@ const Segmented = <T extends string>({ value, onChange, options }: { value: T; o
   </div>
 );
 
-/** Whether this user can book online (their Knack pages include a booking form). */
+/** Whether this user can book online (the Online booking feature, or a Knack booking form). */
 export const useBookingEnabled = (): boolean => {
   const q = useQuery({ queryKey: ['booking'], queryFn: () => api<{ enabled: boolean }>('/booking'), staleTime: 60_000 });
   return Boolean(q.data?.enabled);

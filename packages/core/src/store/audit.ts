@@ -11,7 +11,7 @@
  * makes the log itself PHI.
  */
 
-export type AuditKind = 'create' | 'update' | 'delete' | 'view' | 'list' | 'download' | 'upload' | 'sign-in' | 'sign-out';
+export type AuditKind = 'create' | 'update' | 'delete' | 'view' | 'list' | 'download' | 'upload' | 'sign-in' | 'sign-out' | 'setting';
 
 export interface AuditEvent {
   at: string;

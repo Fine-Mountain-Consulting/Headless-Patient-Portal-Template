@@ -4,7 +4,9 @@ A headless React front end on a Knack database. Read [README.md](README.md) firs
 
 ## Rules that are not negotiable
 
-- **Access mirrors the customer's Knack pages.** It is derived in `packages/core/src/access/derive.ts` and enforced in `packages/core/src/access/policy.ts`. Never hand-write a permission matrix or grant access that no Knack page grants. The only exception is the `Headless Admin` role (full access). If a feature needs access Knack doesn't grant, the answer is a Knack page, and the README says which.
+- **Access mirrors the customer's Knack pages.** It is derived in `packages/core/src/access/derive.ts` and enforced in `packages/core/src/access/policy.ts`. Never hand-write a permission matrix or grant access that no Knack page grants. Two exceptions, and only these:
+  - the `Headless Admin` role (full access);
+  - **portal features** (`packages/core/src/access/features.ts`, defined under `features` in the template manifest): abilities the Knack template has no page for. Each is off until a Headless Admin switches it on, every grant is limited to the signed-in user's own records (`own`: `self` or a connection to the role), and it shows in the Access map. A new portal ability gets a feature like this; it never widens access to other people's records.
 - **The browser never talks to Knack.** All Knack calls go through `packages/core/src/knack/client.ts` on the server, using the master REST key.
 - **No `field_N` or `object_N` in the browser.** DTOs use slugs (`packages/core/src/knack/values.ts`). Slugs are locked to keys (`model.ts`, `SlugLock`), so a rename in Knack doesn't break screens.
 - **Knack ignores nested filter groups.** Scope filters must stay flat; scope is always a top-level AND.

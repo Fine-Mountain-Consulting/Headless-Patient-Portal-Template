@@ -5,7 +5,7 @@ A modern patient portal that sits on top of the Knack **Patient Portal** templat
 - **Patients:** home dashboard, appointments (list and calendar), online booking, test results, medications, secure messages, documents, emergency contacts.
 - **Doctors:** today's schedule, calendar, patient charts with results, prescriptions, documents and visit notes, messages, and their own availability and time off.
 - **Medical staff:** front-desk view of today across all doctors with one-tap status changes, and every table their Knack pages give them.
-- **Headless Admin:** all data, an **Access map** showing what each role can do and why, an activity log, Knack API usage, and Knack sync status.
+- **Headless Admin:** all data, **portal feature switches**, an **Access map** showing what each role can do and why, an activity log, Knack API usage, and Knack sync status.
 
 > **Compliance tier: HIPAA.** A patient portal holds protected health information. Read [Before real patients use it](#before-real-patients-use-it) before you put real data in it.
 
@@ -25,7 +25,19 @@ A modern patient portal that sits on top of the Knack **Patient Portal** templat
 
 Pages with no login are **ignored**: there is no anonymous data access. The **Access map** (admin) lists every rule and the Knack page it came from.
 
-One role is added for this app: **Headless Admin**, a Knack user role with full access, used to administer the portal. Create it in Knack (a user role object named exactly `Headless Admin`) and assign it to whoever administers the portal.
+Two things are added on top of your Knack pages:
+
+- **Headless Admin**, a Knack user role with full access, used to administer the portal. Create it in Knack (a user role object named exactly `Headless Admin`) and assign it to whoever administers the portal.
+- **Portal features**: abilities this portal adds that the Knack template has no page for (see below). Each is **off until a Headless Admin switches it on** under *Administration → Portal features*. A feature only ever covers people's **own** records, can't be switched on if your Knack app lacks a table or field it needs, and shows in the Access map as "Portal feature". Who switched it, and when, is shown there and written to the activity log.
+
+### Portal features
+
+| Feature | When switched on |
+| --- | --- |
+| **Online booking** | Patients book their own appointments: date and time first, then a doctor who is free. Created for the signed-in patient only, with *Status = Scheduled*. |
+| **Doctor availability** | Doctors edit their own working days, hours, appointment length and online-booking setting, and add or delete their own time off. |
+
+Features are defined in [templates/patient-portal/manifest.json](templates/patient-portal/manifest.json) by Knack table and field name. If you'd rather grant the same thing with Knack pages, that works too: access from pages and features is combined.
 
 ### Security model
 
@@ -74,17 +86,12 @@ If Knack can't be reached, the last good structure stays in use.
 
 ## Online booking
 
-Patients can book when **their Knack pages allow it**:
+Switch on **Online booking** (and, so doctors can keep their own hours, **Doctor availability**) under *Administration → Portal features*. Booking reads these from Knack. They aren't in Knack's stock template, so add them once in the Knack Builder (tables and fields only; no pages needed):
 
-1. **Patient Portal → page "Book Appointment"**: a form that adds Appointments connected to the logged-in Patient, with inputs *Date of Appointment*, *Doctor*, *Reason for Appointment*, and a record rule *Status = Scheduled*.
-2. **Doctor schedules** (optional fields on Doctors): *Available Days*, *Day Starts*, *Day Ends*, *Appointment Length*, *Online Booking*. Blank means Monday–Friday, 9–5, 30 minutes.
-3. **Doctor Time Off** (optional table: *Starts*, *Ends*, *Reason*, *Doctor*): blocks booking.
+- **Doctor schedules** (optional fields on Doctors): *Available Days*, *Day Starts*, *Day Ends*, *Appointment Length*, *Online Booking*. Blank means Monday–Friday, 9–5, 30 minutes. A doctor with *Online Booking* off isn't offered.
+- **Doctor Time Off** (optional table: *Starts*, *Ends*, *Reason*, *Doctor*): blocks booking.
 
-So doctors can manage their own schedule, add a **"My Availability"** page to the Doctor Portal with:
-
-- a form that updates the logged-in Doctor's record (the five schedule fields);
-- a Doctor Time Off table connected to the logged-in Doctor, with a delete link;
-- a form that adds Doctor Time Off connected to the logged-in Doctor.
+If those fields or that table are missing, the feature says what's missing and stays off.
 
 Patients receive only *when* doctors are busy, never whose appointment it is. Every booking is re-checked on the server against fresh data: working hours, at least 2 hours' notice, no more than 90 days ahead, no double-booking.
 
@@ -92,7 +99,7 @@ Patients receive only *when* doctors are busy, never whose appointment it is. Ev
 
 ### Firebase (recommended)
 
-One Cloud Function (`api`) serves the whole site: the built web app and the API, from one origin. The activity log is stored in Firestore.
+One Cloud Function (`api`) serves the whole site: the built web app and the API, from one origin. The activity log and the feature switches are stored in Firestore.
 
 **No Firebase Hosting.** Hosting is not a covered service under Google's HIPAA BAA, and a Hosting rewrite would carry every patient request through it. Cloud Functions, Cloud Run and Firestore are covered. One origin also keeps the session cookie first-party.
 
@@ -118,7 +125,7 @@ npm run sync && npm run build
 KNACK_API_KEY=… SESSION_SECRET=… KNACK_APP_ID=… npm start   # port 8787
 ```
 
-Put it behind TLS. The activity log goes to `DATA_DIR/audit.jsonl`, which may contain PHI: keep it on an encrypted volume readable only by the service.
+Put it behind TLS. The activity log goes to `DATA_DIR/audit.jsonl`, which may contain PHI: keep it on an encrypted volume readable only by the service. Feature switches are kept in `DATA_DIR/features.json`.
 
 ## Before real patients use it
 
