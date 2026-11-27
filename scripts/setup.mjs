@@ -23,6 +23,7 @@ const appIdArg = arg('--app-id');
 const mode = args.includes('--hipaa') ? 'hipaa' : args.includes('--test') ? 'test' : undefined;
 
 let blocking = 0;
+let liveSkipped = false;
 const ok = (m) => console.log(`  ✔ ${m}`);
 const note = (m) => console.log(`  ! ${m}`);
 const fail = (m, fix) => {
@@ -49,7 +50,7 @@ if (!existsSync('.env')) {
       'No .env yet.',
       'Run: npm run setup -- --app-id <your Knack app id> --test   (synthetic data)\n' +
         '        or: npm run setup -- --app-id <your Knack app id> --hipaa  (real patients, HIPAA tenant)\n' +
-        '        The app id is in the Knack Builder URL, or under Settings → API & Code.',
+        '        The app id is the 24-character id in the Knack Builder URL (or ask the Knack MCP server: resolveApplication).',
     );
     finish();
   }
@@ -114,14 +115,23 @@ if (sync.status !== 0) {
   finish();
 }
 ok('Knack app matches the Patient Portal template');
+const snapshot = JSON.parse(readFileSync('.knack/snapshot.json', 'utf8'));
+{
+  const optional = snapshot.template?.optional ?? {};
+  const missing = Object.entries(optional).flatMap(([table, fields]) => {
+    const o = snapshot.objects.find((x) => x.name === table);
+    return o ? fields.filter((f) => !o.fields.some((y) => y.name === f)).map((f) => `${table}.${f}`) : [table];
+  });
+  missing.length
+    ? note(`Online booking can't be switched on until these are added in Knack: ${missing.join(', ')} (optional; see Online booking in the README).`)
+    : ok('Online booking fields present (switch the feature on in the portal)');
+}
 
 // ── Live checks (need the REST key) ───────────────────────────────────────
 section('Live Knack checks');
 if (!key) {
-  note('KNACK_API_KEY not set, so the key and the Headless Admin user were not checked.');
-  note('Re-run with the key: KNACK_API_KEY=<key> npm run setup   (Knack Builder → Settings → API & Code)');
+  liveSkipped = true;
 } else {
-  const snapshot = JSON.parse(readFileSync('.knack/snapshot.json', 'utf8'));
   const adminName = snapshot.template?.roles?.admin ?? 'Headless Admin';
   const admin = snapshot.objects.find((o) => o.name === adminName);
   const field = (name) => admin?.fields.find((f) => f.name === name)?.key;
@@ -130,16 +140,19 @@ if (!key) {
     const filters = field('User Status')
       ? `&filters=${encodeURIComponent(JSON.stringify({ match: 'and', rules: [{ field: field('User Status'), operator: 'is', value: 'active' }] }))}`
       : '';
-    const r = await fetch(`${host}/objects/${admin.key}/records?rows_per_page=1${filters}`, { headers, signal: AbortSignal.timeout(20_000) });
+    const r = await fetch(`${host}/objects/${admin.key}/records?rows_per_page=10${filters}`, { headers, signal: AbortSignal.timeout(20_000) });
     if (r.status === 401 || r.status === 403) {
       fail(`Knack refused the REST key (${r.status}).`, `Copy it again from Knack Builder → Settings → API & Code, and check KNACK_API_HOST (${host}) matches the app's tenant.`);
     } else if (!r.ok) {
       fail(`Knack answered ${r.status}.`, `Check KNACK_API_HOST (${host}) and KNACK_APP_ID.`);
     } else {
       ok('REST key accepted');
-      const total = (await r.json()).total_records ?? 0;
+      const body = await r.json();
+      const total = body.total_records ?? 0;
+      const emailKey = field('Email');
+      const emails = (body.records ?? []).map((x) => x[`${emailKey}_raw`]?.email ?? x[`${emailKey}_raw`]).filter((e) => typeof e === 'string');
       total > 0
-        ? ok(`${total} active ${adminName} user${total === 1 ? '' : 's'} (can sign in and switch on portal features)`)
+        ? ok(`${total} active ${adminName} user${total === 1 ? '' : 's'}: ${emails.join(', ')}${total > emails.length ? ', …' : ''}`)
         : fail(`No active ${adminName} user, so nobody can administer the portal.`, `Add yourself as a record in the "${adminName}" table in Knack (name, email, password, status Active).`);
     }
   } catch (e) {
@@ -153,6 +166,14 @@ function finish() {
   if (blocking) {
     console.log(`\n${blocking} thing${blocking === 1 ? '' : 's'} to fix (✗ above). Fix, then run npm run setup again.\n${HELP}\n`);
     process.exit(1);
+  }
+  if (liveSkipped) {
+    console.log(
+      '\nNot ready yet: the REST key and the admin login haven\'t been checked.\n' +
+        'Re-run with the key (Knack Builder → Settings → API & Code); it is never saved:\n\n' +
+        '  KNACK_API_KEY=<key> npm run setup\n',
+    );
+    process.exit(0);
   }
   console.log(`\nReady. Start it with:\n\n  KNACK_API_KEY=<key> npm run dev\n\nthen open http://localhost:5173 and sign in as a Headless Admin user.\n${HELP}\n`);
   process.exit(0);

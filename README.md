@@ -1,17 +1,28 @@
 # Headless Patient Portal for Knack
 
-A modern patient portal that sits on top of the Knack **Patient Portal** template. Knack stays the database and the place you manage users and access. This replaces Knack's built-in pages with a fast, mobile-first app for patients, doctors, staff and administrators.
+A modern patient portal that sits on top of Knack's **Patient Portal Template** app. Knack stays the database and the place you manage users and access. This replaces Knack's built-in pages with a fast, mobile-first app for patients, doctors, staff and administrators.
 
 - **Patients:** home dashboard, appointments (list and calendar), online booking, test results, medications, secure messages, documents, emergency contacts.
 - **Doctors:** today's schedule, calendar, patient charts with results, prescriptions, documents and visit notes, messages, and their own availability and time off.
 - **Medical staff:** front-desk view of today across all doctors with one-tap status changes, and every table their Knack pages give them.
 - **Headless Admin:** all data, **portal feature switches**, an **Access map** showing what each role can do and why, an activity log, Knack API usage, and Knack sync status.
 
-> **Compliance tier: HIPAA.** A patient portal holds protected health information. Read [Before real patients use it](#before-real-patients-use-it) before you put real data in it.
+> [!IMPORTANT]
+> **Using this code does not make you HIPAA compliant.** It is built to support HIPAA requirements, but compliance depends on how you run it. You may store protected health information (PHI) only when **all** of these are true:
+>
+> - you have a signed **Business Associate Agreement (BAA) with Knack** (a Knack HIPAA plan);
+> - you have a signed **BAA with your hosting provider** (for example Google Cloud for Firebase), covering every service that handles PHI;
+> - you have done the rest of [Before real patients use it](#before-real-patients-use-it), plus your organization's own HIPAA risk assessment, policies and training.
+>
+> HIPAA compliance is your responsibility. Fine Mountain Consulting and the contributors to this repo make no guarantee of compliance and accept no liability for how it is deployed or used. Until those steps are done, use synthetic test data only.
 
 ## Set it up
 
-You need a Knack app built from the **Patient Portal** template (any Knack plan for testing; a **HIPAA plan** for real patients), Node 22, and the app's **REST API key** (Knack Builder → Settings → API & Code).
+You need:
+
+- **A Knack app made from Knack's "Patient Portal Template".** In Knack, choose **Create App → Select a Template App**, pick **Patient Portal Template** (under *Top* or *Healthcare*), and click **Create App**. It's the one described as *"A secure patient portal for managing appointments, messages, test results, and prescriptions across patients, doctors, and staff."* Other healthcare templates (*Patient Scheduling*, *Electronic Medical Records*) have different tables and won't work. An app you already built from the Patient Portal Template works too.
+- **The right Knack plan.** Any plan for testing with synthetic data; a **Knack HIPAA plan with a signed BAA** for real patients.
+- **Node 22** and the app's **REST API key** (Knack Builder → Settings → API & Code).
 
 **Need help?** Fine Mountain Consulting can configure and install it for you: [finemountainconsulting.com](https://finemountainconsulting.com).
 
@@ -70,7 +81,7 @@ Pages with no login are **ignored**: there is no anonymous data access. The **Ac
 
 Two things are added on top of your Knack pages:
 
-- **Headless Admin**, a Knack user role with full access, used to administer the portal. Create it in Knack (a user role object named exactly `Headless Admin`) and assign it to whoever administers the portal.
+- **Headless Admin**, a Knack user role with full access to **every table in the Knack app** (not only the template's), used to administer the portal. Give it only to people who should see everything. Create it in Knack (a user role object named exactly `Headless Admin`) and assign it to whoever administers the portal.
 - **Portal features**: abilities this portal adds that the Knack template has no page for (see below). Each is **off until a Headless Admin switches it on** under *Administration → Portal features*. A feature only ever covers people's **own** records, can't be switched on if your Knack app lacks a table or field it needs, and shows in the Access map as "Portal feature". Who switched it, and when, is shown there and written to the activity log.
 
 ### Portal features
@@ -181,7 +192,7 @@ Put it behind TLS. The activity log goes to `DATA_DIR/audit.jsonl`, which may co
 
 ## Before real patients use it
 
-The headless app can only be as compliant as everything it runs on. Before the first real patient record:
+This code does not make a deployment HIPAA compliant; it can only be as compliant as everything it runs on and the practices of the organization running it. **No PHI until you have a BAA with Knack and a BAA with your hosting provider.** Before the first real patient record:
 
 1. **Business Associate Agreements** with Knack (HIPAA plan, GovCloud), your cloud (Google Cloud BAA, which covers Cloud Functions, Cloud Run and Firestore but **not** Firebase Hosting or plain Firebase Auth), and anything else that touches PHI.
 2. **Knack HIPAA tenant.** Set `KNACK_API_HOST=https://usgc-api.knack.com/v1`. The commercial host *accepts* writes for a GovCloud app, answers 200, and drops them. With `COMPLIANCE_TIER=hipaa` the server refuses the commercial host unless `ALLOW_COMMERCIAL_HOST_FOR_DEMO=true`, which is only for synthetic demo data.

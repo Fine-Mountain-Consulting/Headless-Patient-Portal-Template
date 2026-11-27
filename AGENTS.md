@@ -14,8 +14,9 @@ The goal: the user's AI environment is connected to their Knack account (Knack M
 
 ### 0. Ask first
 
-- **Which Knack app?** It must be built from Knack's Patient Portal template (or a copy of an app that was).
+- **Which Knack app?** It must be made from Knack's **Patient Portal Template** (Knack → Create App → Select a Template App → *Patient Portal Template*, under Top or Healthcare). Not *Patient Scheduling* or *Electronic Medical Records*: their tables differ. If they don't have one yet, tell them to create it that way; templates can't be created through MCP.
 - **Test or real patients?** *Test* = synthetic data on Knack's normal (commercial) servers. *Real patients* = a Knack HIPAA plan, which uses the GovCloud host, plus the steps under "Before real patients use it" in the README. If unsure, set up as test.
+- **Tell them plainly, before any real-patient setup:** this code does not make them HIPAA compliant. They may store PHI only with a signed **BAA with Knack** and a signed **BAA with their hosting provider**, after the README's "Before real patients use it" steps and their own risk assessment. Compliance is their responsibility; there is no guarantee from the code or its authors. Never tell a user the portal "is HIPAA compliant".
 - **Where will it run?** Locally first, always. Then Firebase (recommended) or any Node host.
 
 ### 1. Connect the Knack MCP server
@@ -39,26 +40,35 @@ npm run setup -- --app-id <app id> --test     # or --hipaa for a HIPAA tenant
 
 This creates `.env` (git-ignored) with a fresh session secret and the right Knack host, then syncs the app and reports what's missing.
 
-### 4. Make the Knack app match the template
+- `npm install` may report "moderate severity vulnerabilities" in development tools. That's expected; don't run `npm audit fix --force` (it upgrades packages across major versions and breaks the build).
+- `--test` keeps the HIPAA tier's safeguards (automatic logoff, no-store caching, audit log) and only allows Knack's commercial host for synthetic data (`ALLOW_COMMERCIAL_HOST_FOR_DEMO=true`). Leave it that way; `COMPLIANCE_TIER=standard` is for non-health apps.
 
-`npm run setup` (sync) lists any missing table or field by name. On a fresh Patient Portal app the usual gap is the **Headless Admin** role:
+### 4. The REST API key
 
-- **Headless Admin** user role (required). MCP: `createKnackObjectWithFields` with `tableName: "Headless Admin"`, `isUserRoleObjectType: true`, `registrationType: "closed"`, `fields: []`. Name, Email, Password and User Status are created automatically.
-- **The first admin user** (required to administer the portal). Ask the user for their email. MCP: `manageKnackRecord` `create` on the Headless Admin object (`objectType: "UserObject"`, its `profile_key`) with name, email and `User Status: active`. For the password, have the user type one they choose, or set it themselves in the Knack Builder. Never invent a password and never write one to a file.
-- **Online booking** (optional; the feature stays off without it). On **Doctors**: *Available Days* (multiple choice, checkboxes, Monday…Sunday), *Day Starts* and *Day Ends* (multiple choice, single, times like `9:00 AM`), *Appointment Length* (number, minutes), *Online Booking* (yes/no). A table **Doctor Time Off**: *Starts*, *Ends* (date/time), *Reason* (short text), *Doctor* (connection to Doctors). Create the table with `createKnackObjectWithFields`, then add the connection with `upsertField`.
-
-Names must match exactly; keys don't matter (the template matches by name). Re-run `npm run setup` until the Knack app section is ✔.
-
-Don't create Knack **pages** to grant access, and don't change the app's existing pages unless the user asks: the portal's access is derived from the pages they already have (see Rules).
-
-### 5. The REST API key
-
-The portal's server needs the app's REST API key: Knack Builder → Settings → API & Code. Only the user can get it. It bypasses every Knack permission, so:
+Ask for it now: the remaining checks need it. The portal's server needs the app's REST API key: Knack Builder → Settings → API & Code. Only the user can get it. It bypasses every Knack permission, so:
 
 - It is passed **on the command line only**: `KNACK_API_KEY=<key> npm run setup`, `KNACK_API_KEY=<key> npm run dev`. On Firebase it goes in Secret Manager.
 - **Never** write it to `.env`, a script, a config file, a commit, a log, or a message you send anywhere else. Don't repeat it back.
 
-With the key, `npm run setup` also checks the key and that an active Headless Admin user exists.
+```bash
+KNACK_API_KEY=<key> npm run setup
+```
+
+With the key, setup also checks that Knack accepts it and lists the active Headless Admin users. Setup only says **Ready** after these live checks pass.
+
+### 5. Make the Knack app match the template
+
+Setup lists any missing table or field by name. On a fresh Patient Portal app the usual gap is the **Headless Admin** role:
+
+- **Headless Admin** user role (required). MCP: `createKnackObjectWithFields` with `tableName: "Headless Admin"`, `isUserRoleObjectType: true`, `registrationType: "closed"`, `fields: []`. Name, Email, Password and User Status are created automatically.
+- **An admin login for the user** (required to administer the portal). If setup already lists active Headless Admin users, show them and ask which one is the user's; don't create another. Otherwise ask for their email and create one. MCP: `manageKnackRecord` `create` on the Headless Admin object (`objectType: "UserObject"`, its `profile_key`) with name, email and `User Status: active`. For the password, have the user type one they choose, or set it themselves in the Knack Builder. Never invent a password and never write one to a file.
+- **Online booking** (optional; the feature stays off without it). On **Doctors**: *Available Days* (multiple choice, checkboxes, Monday…Sunday), *Day Starts* and *Day Ends* (multiple choice, single, times like `9:00 AM`), *Appointment Length* (number, minutes), *Online Booking* (yes/no). A table **Doctor Time Off**: *Starts*, *Ends* (date/time), *Reason* (short text), *Doctor* (connection to Doctors). Create the table with `createKnackObjectWithFields`, then add the connection with `upsertField`. Setup says whether these are present.
+
+Names must match exactly; keys don't matter (the template matches by name). Re-run `KNACK_API_KEY=<key> npm run setup` until it says **Ready**.
+
+Don't create Knack **pages** to grant access, and don't change the app's existing pages unless the user asks: the portal's access is derived from the pages they already have (see Rules). Sync may print **warnings** about pages (a public page, an orphaned page). Pass them on to the user in plain words; they are about the Knack app, not the portal, and nothing needs fixing to continue.
+
+Headless Admin has full access to **every** table in the Knack app, not only the template's. Tell the user, so they give that role only to people who should see everything.
 
 ### 6. Run it
 
@@ -66,7 +76,7 @@ With the key, `npm run setup` also checks the key and that an active Headless Ad
 KNACK_API_KEY=<key> npm run dev
 ```
 
-Open http://localhost:5173 and sign in as the Headless Admin user. Under *Administration*, the **Access map** shows what each role can do and which Knack page grants it; **Portal features** switches on online booking and doctor availability.
+Open http://localhost:5173 and sign in as the Headless Admin user. (`npm run build` may warn that a chunk is larger than 500 kB; that's a size hint, not an error.) Under *Administration*, the **Access map** shows what each role can do and which Knack page grants it; **Portal features** switches on online booking and doctor availability.
 
 For a test app, the user may want demo logins and synthetic records: see "Demo deployment" in the README (`scripts/demo-logins.mjs`, `scripts/seed-demo.mjs`). Never on a real tenant; both refuse the GovCloud host.
 
@@ -77,7 +87,7 @@ Follow "Deploy" in the README. For Firebase the user needs the Firebase CLI, a F
 ### When something fails
 
 - **"COMPLIANCE_TIER=hipaa but KNACK_API_HOST is the commercial host"**: a test app needs `ALLOW_COMMERCIAL_HOST_FOR_DEMO=true` in `.env`; a HIPAA app needs `KNACK_API_HOST=https://usgc-api.knack.com/v1`.
-- **Sync says a table or field is missing**: add it in Knack (step 4) with that exact name.
+- **Sync says a table or field is missing**: add it in Knack (step 5) with that exact name.
 - **Key refused (401/403)**: wrong key, or the host doesn't match the tenant (HIPAA apps are on GovCloud).
 - **Writes "succeed" but nothing changes**: a GovCloud app reached through the commercial host. Fix `KNACK_API_HOST`.
 - **Sign-in works but shows "almost ready"**: that user has no role the portal knows. Give them Patients, Doctors, Medical Staff or Headless Admin in Knack.
