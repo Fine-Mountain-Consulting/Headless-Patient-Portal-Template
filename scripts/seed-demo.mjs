@@ -5,6 +5,10 @@
 //   KNACK_API_KEY=... node scripts/seed-demo.mjs --email patient@example.com
 //   KNACK_API_KEY=... node scripts/seed-demo.mjs --email patient@example.com --remove
 //
+// --doctor <email> makes that doctor the primary doctor (default: the app's
+// first doctor named Doolittle); --staff <email> picks the staff member who
+// logs the records (default: the first one named Nurse).
+//
 // The patient must already exist (a Patients record with that email). Doctors
 // and staff are taken from the app's existing records. Every id created is
 // written to .knack/seed-<email>.json so --remove can delete exactly those.
@@ -16,6 +20,9 @@ if (existsSync('.env')) process.loadEnvFile('.env');
 const args = process.argv.slice(2);
 const email = args[args.indexOf('--email') + 1];
 const remove = args.includes('--remove');
+const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1]?.toLowerCase() : undefined);
+const doctorEmail = opt('--doctor');
+const staffEmail = opt('--staff');
 const APP = process.env.KNACK_APP_ID;
 const KEY = process.env.KNACK_API_KEY;
 const HOST = (process.env.KNACK_API_HOST || 'https://api.knack.com/v1').replace(/\/+$/, '');
@@ -93,18 +100,33 @@ if (!patient) throw new Error(`No Patients record with email ${email}. Add the p
 const doctors = (await call('GET', `/objects/${O.doctors.key}/records?rows_per_page=100`)).records;
 const staff = (await call('GET', `/objects/${O.staff.key}/records?rows_per_page=100`)).records;
 const byName = (list, field, re) => list.find((r) => re.test(r[`${field}_raw`]?.full ?? '')) ?? list[0];
-const primary = byName(doctors, O.doctors.f('Name'), /doolittle/i);
+const byEmail = (list, field, email) => list.find((r) => (r[`${field}_raw`]?.email ?? '').toLowerCase() === email);
+const pick = (list, o, email, re, label) => {
+  if (!email) return byName(list, o.f('Name'), re);
+  const found = byEmail(list, o.f('Email'), email);
+  if (!found) throw new Error(`No ${label} with email ${email}.`);
+  return found;
+};
+const primary = pick(doctors, O.doctors, doctorEmail, /doolittle/i, 'doctor');
 const cardio = doctors.find((d) => d[`${O.doctors.f('Specialty')}_raw`] === 'Cardiology') ?? doctors[1];
 const derm = doctors.find((d) => d[`${O.doctors.f('Specialty')}_raw`] === 'Dermatology') ?? doctors[2];
-const nurse = byName(staff, O.staff.f('Name'), /nurse/i);
+const nurse = pick(staff, O.staff, staffEmail, /nurse/i, 'staff member');
 const P = patient.id;
 
+// The ledger is saved after every record, so a failed run can still be removed.
 const created = [];
+const saveLedger = () => {
+  mkdirSync('.knack', { recursive: true });
+  writeFileSync(ledgerPath, JSON.stringify({ email, patient: P, at: new Date().toISOString(), created }, null, 2));
+};
 const create = async (o, values, label) => {
   const r = await call('POST', `/objects/${o.key}/records`, values);
   created.push({ object: o.key, id: r.id, label });
+  saveLedger();
   return r.id;
 };
+// Lab reference numbers are unique in Knack: make them unique per patient.
+const ref = (base) => `${base}-${P.slice(-4).toUpperCase()}`;
 
 console.log(`Seeding demo data for patient ${P} (primary doctor ${primary.id})…`);
 
@@ -115,7 +137,7 @@ if (!patient[`${pf('Doctor')}_raw`]?.length) profile[pf('Doctor')] = [primary.id
 if (!patient[pf('Date of Birth')]) profile[pf('Date of Birth')] = { date: '06/14/1984' };
 if (!patient[pf('Phone')]) profile[pf('Phone')] = '(555) 014-2266';
 if (!patient[pf('Address')]) profile[pf('Address')] = { street: '100 Demo Way', city: 'Springfield', state: 'VT', zip: '05156' };
-if (!patient[pf('Emergency Contact')]) profile[pf('Emergency Contact')] = 'Jordan Marshall (spouse)';
+if (!patient[pf('Emergency Contact')]) profile[pf('Emergency Contact')] = 'Jordan Lee (spouse)';
 if (!patient[pf('Emergency Phone')]) profile[pf('Emergency Phone')] = '(555) 019-9001';
 if (Object.keys(profile).length) {
   await call('PUT', `/objects/${O.patients.key}/records/${P}`, profile);
@@ -165,14 +187,14 @@ const result = (type, offset, doc, status, html, ref) =>
   }, `result ${type}`);
 
 await result('Complete Blood Count (CBC)', -59, primary, 'Reviewed',
-  `<p><strong>All values within normal limits.</strong></p>${table([['WBC', '6.4 K/µL', '4.0–11.0'], ['Hemoglobin', '14.1 g/dL', '13.5–17.5'], ['Platelets', '251 K/µL', '150–400']])}`, 'DEMO-LAB-10231');
+  `<p><strong>All values within normal limits.</strong></p>${table([['WBC', '6.4 K/µL', '4.0–11.0'], ['Hemoglobin', '14.1 g/dL', '13.5–17.5'], ['Platelets', '251 K/µL', '150–400']])}`, ref('DEMO-LAB-10231'));
 await result('Lipid Panel', -59, primary, 'Reviewed',
-  `<p>LDL is slightly above target. We’ll start a statin and recheck in 3 months.</p>${table([['Total cholesterol', '212 mg/dL', '&lt; 200'], ['LDL', '138 mg/dL', '&lt; 100'], ['HDL', '52 mg/dL', '&gt; 40'], ['Triglycerides', '110 mg/dL', '&lt; 150']])}`, 'DEMO-LAB-10232');
+  `<p>LDL is slightly above target. We’ll start a statin and recheck in 3 months.</p>${table([['Total cholesterol', '212 mg/dL', '&lt; 200'], ['LDL', '138 mg/dL', '&lt; 100'], ['HDL', '52 mg/dL', '&gt; 40'], ['Triglycerides', '110 mg/dL', '&lt; 150']])}`, ref('DEMO-LAB-10232'));
 await result('Hemoglobin A1C', -59, primary, 'Completed',
-  `<p>A1C <strong>5.6%</strong>. Normal (below 5.7%).</p>`, 'DEMO-LAB-10233');
+  `<p>A1C <strong>5.6%</strong>. Normal (below 5.7%).</p>`, ref('DEMO-LAB-10233'));
 await result('Electrocardiogram (EKG)', -21, cardio, 'Reviewed',
-  `<p>Normal sinus rhythm, rate 72. No acute changes. Occasional premature atrial contractions, which are usually harmless. A 48-hour Holter monitor was ordered.</p>`, 'DEMO-CARD-5521');
-await result('Thyroid Panel', -9, primary, 'Pending', '', 'DEMO-LAB-10301');
+  `<p>Normal sinus rhythm, rate 72. No acute changes. Occasional premature atrial contractions, which are usually harmless. A 48-hour Holter monitor was ordered.</p>`, ref('DEMO-CARD-5521'));
+await result('Thyroid Panel', -9, primary, 'Pending', '', ref('DEMO-LAB-10301'));
 console.log('  test results: 5');
 
 // ── Prescriptions ─────────────────────────────────────────────────────────
@@ -269,7 +291,7 @@ console.log('  documents: 2');
 
 // ── Emergency contacts ────────────────────────────────────────────────────
 const cf = (n) => O.contacts.f(n);
-await create(O.contacts, { [cf('Name')]: 'Jordan Marshall', [cf('Phone')]: '(555) 019-9001', [cf('Email')]: { email: 'jordan.demo@example.com' }, [cf('Address')]: { street: '100 Demo Way', city: 'Springfield', state: 'VT', zip: '05156' }, [cf('Patient')]: [P] }, 'contact Jordan');
+await create(O.contacts, { [cf('Name')]: 'Jordan Lee', [cf('Phone')]: '(555) 019-9001', [cf('Email')]: { email: 'jordan.demo@example.com' }, [cf('Address')]: { street: '100 Demo Way', city: 'Springfield', state: 'VT', zip: '05156' }, [cf('Patient')]: [P] }, 'contact Jordan');
 await create(O.contacts, { [cf('Name')]: 'Casey Rivera', [cf('Phone')]: '(555) 012-3456', [cf('Email')]: { email: 'casey.demo@example.com' }, [cf('Patient')]: [P] }, 'contact Casey');
 console.log('  emergency contacts: 2');
 
@@ -282,6 +304,5 @@ await note(aCardio, cardio, -21, 'Palpitations ~2x/week, no syncope. EKG: NSR wi
 await note(aFollow, primary, -10, 'BP 146/92 on home log. Start lisinopril 10 mg daily. Statin started for LDL 138. Follow up 6 weeks.');
 console.log('  notes: 3');
 
-mkdirSync('.knack', { recursive: true });
-writeFileSync(ledgerPath, JSON.stringify({ email, patient: P, at: new Date().toISOString(), created }, null, 2));
+saveLedger();
 console.log(`\nDone: ${created.length} records. Ledger: ${ledgerPath} (remove with --remove).`);

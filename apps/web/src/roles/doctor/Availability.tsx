@@ -2,9 +2,10 @@
  * A doctor's own schedule: weekly hours, appointment length, whether patients
  * can book online, and time off. Online booking reads all of it.
  *
- * Like everything else, what a doctor can change here comes from their Knack
- * pages: an edit form on their own Doctors record, and a Doctor Time Off table
- * and form connected to the logged-in doctor.
+ * What a doctor can change here comes from the server's policy: the portal
+ * feature "Doctor availability" (switched on by an admin), or equivalent Knack
+ * pages (an edit form on their own Doctors record, a Doctor Time Off table and
+ * form connected to the logged-in doctor). Either way, only their own.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDaysIcon, ClockIcon, PlusIcon, TrashIcon, SunIcon } from '@heroicons/react/24/outline';
@@ -352,7 +353,7 @@ const SetupNeeded = () => (
   <Panel className="p-6">
     <p className="font-medium text-steel-900">Availability isn’t switched on for doctors yet</p>
     <p className="mt-1 text-sm text-steel-600">
-      An administrator needs to add a “My Availability” page to the Doctor Portal in Knack. Until then, the office can set your hours for you.
+      An administrator can switch on “Doctor availability” under Administration → Portal features. Until then, the office can set your hours for you.
     </p>
   </Panel>
 );

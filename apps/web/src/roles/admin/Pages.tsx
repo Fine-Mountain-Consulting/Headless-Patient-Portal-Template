@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowPathIcon, CheckIcon, ExclamationTriangleIcon, ShieldCheckIcon, CircleStackIcon, BoltIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
-import { Button, cx, PageHeader, Select, StatTile } from '@fmc/knack-ui';
-import { api } from '../../lib/api';
+import { AdjustmentsHorizontalIcon, ArrowPathIcon, CheckIcon, ExclamationTriangleIcon, ShieldCheckIcon, CircleStackIcon, BoltIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
+import { Button, cx, PageHeader, Select, StatTile, Switch } from '@fmc/knack-ui';
+import { api, ApiError } from '../../lib/api';
 import { useList } from '../../lib/records';
 import { useSchema } from '../../lib/schema';
 import { formatDateTime, relative } from '../../lib/format';
 import { useTitle } from '../../lib/hooks';
-import { Empty, InlineError, Page, Panel, Section, SkeletonRows, StatusPill } from '../../components/ui';
+import { Empty, InlineError, Page, Panel, Section, SkeletonRows, StatusPill, useToast } from '../../components/ui';
 
 interface AccessReport {
   roles: Array<{
@@ -26,6 +26,19 @@ interface AccessReport {
     }>;
   }>;
   warnings: string[];
+  features: Feature[];
+}
+
+interface Feature {
+  id: string;
+  title: string;
+  description: string;
+  on: boolean;
+  by?: string;
+  at?: string;
+  available: boolean;
+  problems: string[];
+  grants: string[];
 }
 
 const useAccess = () => useQuery({ queryKey: ['admin', 'access'], queryFn: () => api<AccessReport>('/admin/access'), staleTime: 60_000 });
@@ -46,6 +59,7 @@ export const AdminOverview = () => {
         <StatTile label="Knack calls today" value={todayCalls} icon={<BoltIcon className="h-5 w-5" />} loading={usage.isLoading} />
         <StatTile label="Calls last minute" value={usage.data?.lastMinute ?? '—'} icon={<BoltIcon className="h-5 w-5" />} loading={usage.isLoading} />
       </div>
+      <FeaturesPanel />
       <SyncPanel />
       {access.data && access.data.warnings.length > 0 && (
         <Section title="Things to fix in Knack">
@@ -80,6 +94,96 @@ const EntityCount = ({ slug, name }: { slug: string; name: string }) => {
   );
 };
 
+/** Where a role's access came from: Knack pages, or a portal feature an admin switched on. */
+const Sources = ({ sources, features }: { sources: string[]; features: Feature[] }) => {
+  const pages = sources.filter((s) => !s.startsWith('feature:'));
+  const added = sources.filter((s) => s.startsWith('feature:')).map((s) => features.find((f) => `feature:${f.id}` === s)?.title ?? s.slice(8));
+  return (
+    <div className="mt-3 space-y-1 text-xs">
+      {pages.length > 0 && <p className="text-steel-400">From Knack: {pages.join(', ')}</p>}
+      {added.length > 0 && (
+        <p className="flex items-center gap-1 text-brand-700">
+          <AdjustmentsHorizontalIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          Portal feature: {added.join(', ')}
+        </p>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Abilities the portal adds that the Knack template has no page for. Each is
+ * off until an admin switches it on, and only ever covers the signed-in
+ * user's own records.
+ */
+const FeaturesPanel = () => {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const q = useQuery({ queryKey: ['admin', 'features'], queryFn: () => api<{ features: Feature[] }>('/admin/features') });
+  const toggle = useMutation({
+    mutationFn: ({ id, on }: { id: string; on: boolean }) => api<{ features: Feature[] }>(`/admin/features/${id}`, { method: 'PUT', body: { on } }),
+    onSuccess: (data, { on }) => {
+      qc.setQueryData(['admin', 'features'], data);
+      // Access changed: everything derived from it is stale.
+      void qc.invalidateQueries({ queryKey: ['admin', 'access'] });
+      void qc.invalidateQueries({ queryKey: ['schema'] });
+      void qc.invalidateQueries({ queryKey: ['booking'] });
+      toast(on ? 'Feature switched on' : 'Feature switched off');
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Could not change the feature.', 'error'),
+  });
+  const features = q.data?.features ?? [];
+  if (!q.isLoading && !q.error && features.length === 0) return null;
+  return (
+    <Section title="Portal features" description="Things this portal adds that the Knack template has no page for. Each one is off until you switch it on, and only ever covers people’s own records. Everything else follows your Knack pages.">
+      {q.isLoading && <SkeletonRows rows={2} />}
+      {q.error && <InlineError error={q.error} onRetry={() => void q.refetch()} />}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {features.map((f) => (
+          <Panel key={f.id} className="flex flex-col gap-3 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-steel-900">{f.title}</h3>
+                <p className="mt-1 text-sm text-steel-600">{f.description}</p>
+              </div>
+              <Switch
+                checked={f.on && f.available}
+                disabled={(!f.available && !f.on) || toggle.isPending}
+                onChange={(on) => toggle.mutate({ id: f.id, on })}
+                label={`${f.title}: ${f.on ? 'on' : 'off'}`}
+              />
+            </div>
+            {f.available ? (
+              <ul className="space-y-1 text-xs text-steel-500">
+                {f.grants.map((g) => (
+                  <li key={g} className="flex gap-1.5">
+                    <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0 translate-y-px" aria-hidden="true" />
+                    {g}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <p className="font-medium">Your Knack app is missing something this needs:</p>
+                <ul className="mt-1 list-disc pl-4">
+                  {f.problems.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {f.at && (
+              <p className="text-xs text-steel-400">
+                Switched {f.on ? 'on' : 'off'} by {f.by ?? 'an admin'} {relative(f.at)}
+              </p>
+            )}
+          </Panel>
+        ))}
+      </div>
+    </Section>
+  );
+};
+
 const ACTION_LABEL = { read: 'View', create: 'Add', update: 'Edit', delete: 'Delete' } as const;
 
 export const AccessMap = () => {
@@ -92,7 +196,7 @@ export const AccessMap = () => {
     <Page>
       <PageHeader
         title="Access map"
-        description="What each role can see and do. It is read from your Knack pages: change a page in the Knack Builder, run sync, and this changes with it."
+        description="What each role can see and do. It is read from your Knack pages (change a page in the Knack Builder and this follows at the next sync), plus any portal features switched on under Administration."
         actions={
           roles.length > 0 && (
             <Select aria-label="Role" value={role?.profileKey ?? ''} onChange={(e) => setRoleKey(e.target.value)} options={roles.map((r) => ({ value: r.profileKey, label: r.name }))} className="w-56" />
@@ -152,7 +256,7 @@ export const AccessMap = () => {
                   </dd>
                 </div>
               </dl>
-              <p className="mt-3 text-xs text-steel-400">From Knack: {e.sources.join(', ')}</p>
+              <Sources sources={e.sources} features={access.data?.features ?? []} />
             </Panel>
           ))}
         </div>
@@ -170,6 +274,7 @@ interface AuditEvent {
   fields?: string[];
   count?: number;
   source?: string;
+  reason?: string;
   ip?: string;
 }
 
@@ -183,6 +288,7 @@ const KIND_LABEL: Record<string, string> = {
   upload: 'Uploaded',
   'sign-in': 'Signed in',
   'sign-out': 'Signed out',
+  setting: 'Changed setting',
 };
 
 export const ActivityLog = () => {
@@ -240,6 +346,7 @@ export const ActivityLog = () => {
                     <StatusPill value={KIND_LABEL[e.kind] ?? e.kind} />
                   </td>
                   <td className="hidden px-3 py-2.5 text-steel-600 md:table-cell">
+                    {e.reason}
                     {e.entity}
                     {e.recordId && <span className="ml-1 font-mono text-xs text-steel-400">{e.recordId.slice(-6)}</span>}
                     {e.count !== undefined && ` (${e.count})`}

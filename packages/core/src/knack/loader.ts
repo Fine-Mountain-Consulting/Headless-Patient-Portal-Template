@@ -11,6 +11,8 @@
  * sessions, billing and design are dropped.
  */
 
+import type { FeatureSpec } from '../access/features.js';
+
 export interface LoaderField {
   key: string;
   name: string;
@@ -124,6 +126,8 @@ export interface TemplateManifest {
   /** Tables and fields the screens use when present (features switch off without them). */
   optional?: Record<string, string[]>;
   booking?: BookingConfig;
+  /** Abilities the portal adds, each off until an admin switches it on (access/features.ts). */
+  features?: Record<string, FeatureSpec>;
 }
 
 /**

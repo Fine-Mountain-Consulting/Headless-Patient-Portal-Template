@@ -8,3 +8,4 @@ export { MemoryAuditStore, filterEvents, type AuditStore, type AuditEvent, type 
 export { checkTemplate, carryForward, diffSnapshots, type TemplateCheck } from './model/sync.js';
 export { lockOf, type SlugLock } from './model/model.js';
 export { SECURITY_HEADERS, staticResponse } from './http/static.js';
+export { applyFeatures, MemoryFeatureStore, type FeatureStore, type FeatureStates, type FeatureState, type FeatureReport, type FeatureSpec } from './access/features.js';

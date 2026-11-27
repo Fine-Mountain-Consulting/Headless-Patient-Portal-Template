@@ -1,13 +1,67 @@
 # Headless Patient Portal for Knack
 
-A modern patient portal that sits on top of the Knack **Patient Portal** template. Knack stays the database and the place you manage users and access. This replaces Knack's built-in pages with a fast, mobile-first app for patients, doctors, staff and administrators.
+A modern patient portal that sits on top of Knack's **Patient Portal Template** app. Knack stays the database and the place you manage users and access. This replaces Knack's built-in pages with a fast, mobile-first app for patients, doctors, staff and administrators.
 
 - **Patients:** home dashboard, appointments (list and calendar), online booking, test results, medications, secure messages, documents, emergency contacts.
 - **Doctors:** today's schedule, calendar, patient charts with results, prescriptions, documents and visit notes, messages, and their own availability and time off.
 - **Medical staff:** front-desk view of today across all doctors with one-tap status changes, and every table their Knack pages give them.
-- **Headless Admin:** all data, an **Access map** showing what each role can do and why, an activity log, Knack API usage, and Knack sync status.
+- **Headless Admin:** all data, **portal feature switches**, an **Access map** showing what each role can do and why, an activity log, Knack API usage, and Knack sync status.
 
-> **Compliance tier: HIPAA.** A patient portal holds protected health information. Read [Before real patients use it](#before-real-patients-use-it) before you put real data in it.
+> [!IMPORTANT]
+> **Using this code does not make you HIPAA compliant.** It is built to support HIPAA requirements, but compliance depends on how you run it. You may store protected health information (PHI) only when **all** of these are true:
+>
+> - you have a signed **Business Associate Agreement (BAA) with Knack** (a Knack HIPAA plan);
+> - you have a signed **BAA with your hosting provider** (for example Google Cloud for Firebase), covering every service that handles PHI;
+> - you have done the rest of [Before real patients use it](#before-real-patients-use-it), plus your organization's own HIPAA risk assessment, policies and training.
+>
+> HIPAA compliance is your responsibility. Fine Mountain Consulting and the contributors to this repo make no guarantee of compliance and accept no liability for how it is deployed or used. Until those steps are done, use synthetic test data only.
+
+## Set it up
+
+You need:
+
+- **A Knack app made from Knack's "Patient Portal Template".** In Knack, choose **Create App → Select a Template App**, pick **Patient Portal Template** (under *Top* or *Healthcare*), and click **Create App**. It's the one described as *"A secure patient portal for managing appointments, messages, test results, and prescriptions across patients, doctors, and staff."* Other healthcare templates (*Patient Scheduling*, *Electronic Medical Records*) have different tables and won't work. An app you already built from the Patient Portal Template works too.
+- **The right Knack plan.** Any plan for testing with synthetic data; a **Knack HIPAA plan with a signed BAA** for real patients.
+- **Node 22** and the app's **REST API key** (Knack Builder → Settings → API & Code).
+
+**Need help?** Fine Mountain Consulting can configure and install it for you: [finemountainconsulting.com](https://finemountainconsulting.com).
+
+### With your AI assistant (recommended)
+
+1. Open this repo in your AI coding tool (Claude Code, Cursor, Codex, Copilot…).
+2. Connect it to **your** Knack account through Knack's MCP server, `https://mcp.knack.com/mcp`. In Claude Code: `claude mcp add --transport http knack https://mcp.knack.com/mcp`. In other tools, add a remote (HTTP) MCP server with that URL.
+3. Ask: *"Set up this portal for my Knack app"*.
+
+[AGENTS.md](AGENTS.md) gives the assistant the whole procedure. It finds your app, creates `.env`, adds what the template needs to your Knack app (such as the Headless Admin role and your admin login), checks everything with `npm run setup`, and starts the portal. It will ask you for the REST API key when it needs it; the key is passed on the command line and never saved to a file.
+
+### By hand
+
+1. **Install and configure.** The app id is the 24-character id in your Knack Builder URL.
+
+   ```bash
+   npm install
+   npm run setup -- --app-id <your app id> --test    # test app with synthetic data
+   npm run setup -- --app-id <your app id> --hipaa   # HIPAA plan (GovCloud), for real patients
+   ```
+
+   This creates `.env` (git-ignored) with a fresh session secret and the right Knack host, reads your app's structure, and lists anything missing with the fix.
+
+2. **Add the Headless Admin role in Knack.** The stock template doesn't have it. In the Knack Builder, add a **user role** named exactly `Headless Admin`, then add yourself to it (name, email, password, status Active). This is the login that administers the portal.
+
+3. **Optional: online booking.** Add the fields and table listed under [Online booking](#online-booking). Without them the feature stays off; everything else works.
+
+4. **Check, then run.**
+
+   ```bash
+   KNACK_API_KEY=your-key npm run setup   # adds live checks: key accepted, admin user exists
+   KNACK_API_KEY=your-key npm run dev
+   ```
+
+   Open http://localhost:5173 and sign in as your Headless Admin user.
+
+Run `npm run setup` any time: it's safe to repeat and tells you exactly what's left.
+
+**Keep the REST API key out of files.** Pass it on the command line locally, and use Secret Manager (Firebase) or your host's secret store in production. `npm run check:keys` (also run in CI) fails if a key, secret or Knack id appears in the repo or the built app.
 
 ## How access works
 
@@ -25,7 +79,19 @@ A modern patient portal that sits on top of the Knack **Patient Portal** templat
 
 Pages with no login are **ignored**: there is no anonymous data access. The **Access map** (admin) lists every rule and the Knack page it came from.
 
-One role is added for this app: **Headless Admin**, a Knack user role with full access, used to administer the portal. Create it in Knack (a user role object named exactly `Headless Admin`) and assign it to whoever administers the portal.
+Two things are added on top of your Knack pages:
+
+- **Headless Admin**, a Knack user role with full access to **every table in the Knack app** (not only the template's), used to administer the portal. Give it only to people who should see everything. Create it in Knack (a user role object named exactly `Headless Admin`) and assign it to whoever administers the portal.
+- **Portal features**: abilities this portal adds that the Knack template has no page for (see below). Each is **off until a Headless Admin switches it on** under *Administration → Portal features*. A feature only ever covers people's **own** records, can't be switched on if your Knack app lacks a table or field it needs, and shows in the Access map as "Portal feature". Who switched it, and when, is shown there and written to the activity log.
+
+### Portal features
+
+| Feature | When switched on |
+| --- | --- |
+| **Online booking** | Patients book their own appointments: date and time first, then a doctor who is free. Created for the signed-in patient only, with *Status = Scheduled*. |
+| **Doctor availability** | Doctors edit their own working days, hours, appointment length and online-booking setting, and add or delete their own time off. |
+
+Features are defined in [templates/patient-portal/manifest.json](templates/patient-portal/manifest.json) by Knack table and field name. If you'd rather grant the same thing with Knack pages, that works too: access from pages and features is combined.
 
 ### Security model
 
@@ -36,27 +102,34 @@ One role is added for this app: **Headless Admin**, a Knack user role with full 
 - Every sign-in, record view, list, download, upload, create, update and delete is written to an append-only activity log.
 - File downloads go through the server, which checks access and logs the download first. Knack's asset links open without any credential, so they never reach the browser.
 
-## Quick start (local)
+## Demo deployment
 
-Requirements: Node 22, a Knack app built from the Patient Portal template, its **app ID** and **REST API key** (Knack Builder → Settings → API & Code).
+For showing the portal to people, on a **non-HIPAA test app with synthetic data only**. Both scripts refuse the GovCloud host.
 
-```bash
-npm install
-cp .env.example .env          # fill in KNACK_APP_ID and SESSION_SECRET
-                              # (openssl rand -base64 48)
-KNACK_API_KEY=your-key npm run dev
-```
+1. Create one login per role (Patient, Doctor, Medical staff, Admin), all at `@example.com` addresses. The demo patient's primary doctor is the demo doctor. Running it again resets the passwords.
 
-Open http://localhost:5173 and sign in with a Knack user.
+   ```bash
+   KNACK_API_KEY=your-key node scripts/demo-logins.mjs --password 'choose-a-demo-password'
+   ```
 
-**Keep the REST API key out of files.** Pass it on the command line locally, and use Secret Manager (Firebase) or your host's secret store in production. `npm run check:keys` (also run in CI) fails if a key, secret or Knack id appears in the repo or the built app.
+2. Fill the demo patient with synthetic appointments, results, medications, messages, documents, contacts and visit notes. Every record created is listed in `.knack/` so `--remove` deletes exactly those.
 
-For demo data on a **non-HIPAA test app only**:
+   ```bash
+   KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email demo.patient@example.com \
+     --doctor demo.doctor@example.com --staff demo.staff@example.com
+   KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email demo.patient@example.com --remove
+   ```
 
-```bash
-KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email a-patient@example.com
-KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email a-patient@example.com --remove
-```
+3. Add the two lines the first script prints to `.env` (or your host's config):
+
+   ```bash
+   DEMO_MODE=true
+   DEMO_LOGINS=Patient|demo.patient@example.com|…;Doctor|demo.doctor@example.com|…
+   ```
+
+With `DEMO_MODE=true`, the sign-in page says this is a test site: no PHI, no HIPAA compliance implied or performed, demo data only. It lists the demo logins for one-click sign-in. The server refuses `DEMO_MODE` on the GovCloud host.
+
+**The demo logins are public.** Anyone who opens the page can use them. The Admin login can change or delete every record and switch portal features, so leave it out of `DEMO_LOGINS` for a public demo, or reset the data regularly.
 
 ## Keeping up with Knack
 
@@ -74,17 +147,12 @@ If Knack can't be reached, the last good structure stays in use.
 
 ## Online booking
 
-Patients can book when **their Knack pages allow it**:
+Switch on **Online booking** (and, so doctors can keep their own hours, **Doctor availability**) under *Administration → Portal features*. Booking reads these from Knack. They aren't in Knack's stock template, so add them once in the Knack Builder (tables and fields only; no pages needed):
 
-1. **Patient Portal → page "Book Appointment"**: a form that adds Appointments connected to the logged-in Patient, with inputs *Date of Appointment*, *Doctor*, *Reason for Appointment*, and a record rule *Status = Scheduled*.
-2. **Doctor schedules** (optional fields on Doctors): *Available Days*, *Day Starts*, *Day Ends*, *Appointment Length*, *Online Booking*. Blank means Monday–Friday, 9–5, 30 minutes.
-3. **Doctor Time Off** (optional table: *Starts*, *Ends*, *Reason*, *Doctor*): blocks booking.
+- **Doctor schedules** (optional fields on Doctors): *Available Days*, *Day Starts*, *Day Ends*, *Appointment Length*, *Online Booking*. Blank means Monday–Friday, 9–5, 30 minutes. A doctor with *Online Booking* off isn't offered.
+- **Doctor Time Off** (optional table: *Starts*, *Ends*, *Reason*, *Doctor*): blocks booking.
 
-So doctors can manage their own schedule, add a **"My Availability"** page to the Doctor Portal with:
-
-- a form that updates the logged-in Doctor's record (the five schedule fields);
-- a Doctor Time Off table connected to the logged-in Doctor, with a delete link;
-- a form that adds Doctor Time Off connected to the logged-in Doctor.
+If those fields or that table are missing, the feature says what's missing and stays off.
 
 Patients receive only *when* doctors are busy, never whose appointment it is. Every booking is re-checked on the server against fresh data: working hours, at least 2 hours' notice, no more than 90 days ahead, no double-booking.
 
@@ -92,9 +160,11 @@ Patients receive only *when* doctors are busy, never whose appointment it is. Ev
 
 ### Firebase (recommended)
 
-One Cloud Function (`api`) serves the whole site: the built web app and the API, from one origin. The activity log is stored in Firestore.
+One Cloud Function (`api`) serves the whole site: the built web app and the API, from one origin. The activity log and the feature switches are stored in Firestore.
 
 **No Firebase Hosting.** Hosting is not a covered service under Google's HIPAA BAA, and a Hosting rewrite would carry every patient request through it. Cloud Functions, Cloud Run and Firestore are covered. One origin also keeps the session cookie first-party.
+
+Before the first deploy: install the [Firebase CLI](https://firebase.google.com/docs/cli), create a Firebase project on the **Blaze** plan (Cloud Functions need it), create a **Firestore** database in it, then run `firebase login` and `firebase use --add` in this folder.
 
 ```bash
 npm run sync
@@ -118,18 +188,18 @@ npm run sync && npm run build
 KNACK_API_KEY=… SESSION_SECRET=… KNACK_APP_ID=… npm start   # port 8787
 ```
 
-Put it behind TLS. The activity log goes to `DATA_DIR/audit.jsonl`, which may contain PHI: keep it on an encrypted volume readable only by the service.
+Put it behind TLS. The activity log goes to `DATA_DIR/audit.jsonl`, which may contain PHI: keep it on an encrypted volume readable only by the service. Feature switches are kept in `DATA_DIR/features.json`.
 
 ## Before real patients use it
 
-The headless app can only be as compliant as everything it runs on. Before the first real patient record:
+This code does not make a deployment HIPAA compliant; it can only be as compliant as everything it runs on and the practices of the organization running it. **No PHI until you have a BAA with Knack and a BAA with your hosting provider.** Before the first real patient record:
 
 1. **Business Associate Agreements** with Knack (HIPAA plan, GovCloud), your cloud (Google Cloud BAA, which covers Cloud Functions, Cloud Run and Firestore but **not** Firebase Hosting or plain Firebase Auth), and anything else that touches PHI.
 2. **Knack HIPAA tenant.** Set `KNACK_API_HOST=https://usgc-api.knack.com/v1`. The commercial host *accepts* writes for a GovCloud app, answers 200, and drops them. With `COMPLIANCE_TIER=hipaa` the server refuses the commercial host unless `ALLOW_COMMERCIAL_HOST_FOR_DEMO=true`, which is only for synthetic demo data.
 3. **Front door.** The function is the front door, with no Firebase Hosting in front of it (see Deploy). If you add a custom domain, use Cloud Run domain mapping or an HTTPS load balancer. This template signs people in with its own Knack-backed session, not Firebase Auth. If you add Firebase sign-in, upgrade it to **Identity Platform**, which the BAA covers; plain Firebase Auth is not.
 4. **Retention** for the activity log, agreed with the practice. Leave `AUDIT_VALUES=false` unless the practice needs before/after values (which makes the log itself PHI).
 5. **Lock down Knack's own live app.** It is still reachable at your Knack URL. Remove public pages, or turn the live app off once the headless portal replaces it.
-6. **Never run `seed-demo.mjs` against a real tenant.** It refuses GovCloud hosts.
+6. **Demo mode off.** `DEMO_MODE` unset, and never run `seed-demo.mjs` or `demo-logins.mjs` against a real tenant. All three are refused on GovCloud hosts.
 
 ## Repository layout
 
@@ -140,6 +210,16 @@ The headless app can only be as compliant as everything it runs on. Before the f
 | [packages/server-firebase](packages/server-firebase) | Runs core as a Firebase Cloud Function. |
 | [apps/web](apps/web) | The React app (Vite, Tailwind, TanStack Query, [@fmc/knack-ui](https://github.com/Fine-Mountain-Consulting/knack-ui)). |
 | [templates/patient-portal](templates/patient-portal) | What this template needs from the Knack app, by name. |
-| [scripts](scripts) | `sync`, `access-report`, `seed-demo`, `check-no-keys`, `dev`. |
+| [scripts](scripts) | `setup`, `sync`, `access-report`, `check-no-keys`, `dev`, and for demo apps `demo-logins` and `seed-demo`. |
 
 `npm run verify` runs what CI runs: key check, typecheck, tests, build.
+
+Working on the code with an AI assistant? [AGENTS.md](AGENTS.md) has the rules it must follow.
+
+## Help
+
+Fine Mountain Consulting built this template and can configure, install or extend it for you: [finemountainconsulting.com](https://finemountainconsulting.com).
+
+## License
+
+[MIT](LICENSE) © Fine Mountain Consulting LLC. You may use, change and redistribute this code, including commercially, as long as you keep the copyright and license notice. It comes with no warranty; see the HIPAA notice at the top.

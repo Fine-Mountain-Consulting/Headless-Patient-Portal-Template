@@ -33,6 +33,7 @@ import {
 } from '../knack/values.js';
 import { buildModel, statusField, type AppModel, type EntityModel, type FieldModel } from '../model/model.js';
 import { derivePolicy } from '../access/derive.js';
+import { applyFeatures, MemoryFeatureStore, type FeatureReport, type FeatureStates, type FeatureStore } from '../access/features.js';
 import { BookingError, BookingService } from '../booking/booking.js';
 import { HORIZON_DAYS, LEAD_MS } from '../booking/slots.js';
 import { UsageCounter, type AuditEvent, type AuditKind, type AuditStore } from '../store/audit.js';
@@ -41,6 +42,8 @@ export interface CoreDeps {
   config: CoreConfig;
   snapshot: AppSnapshot;
   audit: AuditStore;
+  /** Where the admin's feature switches are kept. Defaults to memory (all off at start). */
+  features?: FeatureStore;
   /** Persist a newer snapshot (Node writes it to disk). Optional. */
   onSnapshot?: (snapshot: AppSnapshot) => Promise<void>;
 }
@@ -75,6 +78,8 @@ const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const ROLE_RECHECK_MS = 2 * 60_000;
 const MAX_FILTERS = 10;
 const LIST_CACHE_MS = 20_000;
+/** How often feature switches are re-read (other server instances may change them). */
+const FEATURE_RELOAD_MS = 30_000;
 const FILTER_OPERATORS = new Set([
   'is',
   'is not',
@@ -120,6 +125,11 @@ export class HeadlessApp {
   private template: TemplateCheck = { problems: [], missingOptional: [], renamed: [] };
   /** Changes when the structure changes; the browser refetches the schema. */
   private appVersion = '';
+  private features: FeatureReport[] = [];
+  private featureStates: FeatureStates = {};
+  private featuresLoadedAt = 0;
+  private featuresLoading: Promise<void> | null = null;
+  private readonly featureStore: FeatureStore;
 
   readonly usage = new UsageCounter();
   private readonly knack: KnackClient;
@@ -141,6 +151,7 @@ export class HeadlessApp {
         `The app snapshot is for ${snapshot.id} but KNACK_APP_ID is ${config.knackAppId}. Run "npm run sync" again.`,
       );
     }
+    this.featureStore = deps.features ?? new MemoryFeatureStore();
     this.knack = new KnackClient(config.knackAppId, config.knackApiKey, config.knackApiHost, (c) => this.usage.record(c));
 
     // Knack's own inactivity timeout, when the customer set one, wins over
@@ -158,6 +169,8 @@ export class HeadlessApp {
   private apply(snapshot: AppSnapshot): void {
     const model = buildModel(snapshot);
     const derived = derivePolicy(snapshot, model);
+    // Portal features the admin switched on add their (own-records-only) grants.
+    const features = applyFeatures(derived, model, snapshot.template, this.featureStates);
     const policy = new Policy(model, derived);
     const booking = new BookingService(model, policy, this.knack, snapshot.template?.booking);
     const template = checkTemplate(model, snapshot.template);
@@ -168,7 +181,9 @@ export class HeadlessApp {
     this.policy = policy;
     this.booking = booking;
     this.template = template;
-    this.appVersion = `${snapshot.objects.length}.${hash(JSON.stringify([snapshot.objects, snapshot.scenes, snapshot.slugs]))}`;
+    this.features = features;
+    const enabled = features.filter((f) => f.on && f.available).map((f) => f.id);
+    this.appVersion = `${snapshot.objects.length}.${hash(JSON.stringify([snapshot.objects, snapshot.scenes, snapshot.slugs, enabled]))}`;
     this.listCache.clear();
     for (const w of derived.warnings) console.warn(`access: ${w}`);
     for (const p of template.problems) console.warn(`template: ${p}`);
@@ -206,6 +221,51 @@ export class HeadlessApp {
       }
     })();
     return this.sync.running;
+  }
+
+  /**
+   * Load the feature switches when stale. The first load is awaited (until it
+   * succeeds every feature is off); later ones keep the last known state on
+   * error.
+   */
+  private async ensureFeatures(): Promise<void> {
+    if (Date.now() - this.featuresLoadedAt < FEATURE_RELOAD_MS) return;
+    this.featuresLoading ??= (async () => {
+      try {
+        const states = await this.featureStore.load();
+        this.featuresLoadedAt = Date.now();
+        if (JSON.stringify(states) !== JSON.stringify(this.featureStates)) {
+          this.featureStates = states;
+          this.apply(this.snapshot);
+        }
+      } catch (error) {
+        this.featuresLoadedAt = Date.now() - FEATURE_RELOAD_MS + 5_000;
+        console.warn(`features: could not load switches (${(error as Error).message}); keeping the last known state`);
+      } finally {
+        this.featuresLoading = null;
+      }
+    })();
+    await this.featuresLoading;
+  }
+
+  /** Switch a portal feature on or off. Admin only (checked by the route). */
+  private async setFeature(ctx: Ctx, id: string, on: unknown): Promise<Response> {
+    if (typeof on !== 'boolean') throw new HttpError(400, 'Send {"on": true} or {"on": false}.');
+    const feature = this.features.find((f) => f.id === id);
+    if (!feature) throw new HttpError(404, 'No such feature.');
+    if (on && !feature.available) {
+      throw new HttpError(409, `${feature.title} can't be switched on: ${feature.problems.join(' ')}`);
+    }
+    // Read-modify-write against the store, so a switch made on another
+    // instance isn't overwritten with a stale copy.
+    const states = await this.featureStore.load();
+    states[id] = { on, by: ctx.caller.name || ctx.caller.email, at: new Date().toISOString() };
+    await this.featureStore.save(states);
+    this.featureStates = states;
+    this.featuresLoadedAt = Date.now();
+    this.apply(this.snapshot);
+    await this.log(ctx, { kind: 'setting', reason: `${on ? 'Switched on' : 'Switched off'}: ${feature.title}`, source: `feature:${id}` });
+    return json(200, { features: this.features });
   }
 
   /** Kick off a background re-sync when due. Never blocks the request. */
@@ -264,6 +324,7 @@ export class HeadlessApp {
         changed = true;
       }
 
+      await this.ensureFeatures();
       const caller: Caller = current;
       const ctx: Ctx = { caller, ip: clientIp, url };
 
@@ -432,6 +493,8 @@ export class HeadlessApp {
         const result = await this.refresh();
         return json(200, { ...result, status: this.syncStatus() });
       }
+      if (m[2] === 'features' && m.length === 3 && method === 'GET') return json(200, { features: this.features });
+      if (m[2] === 'features' && m[3] && m.length === 4 && method === 'PUT') return this.setFeature(ctx, m[3], (await readJson(request)).on);
       if (m[2] === 'usage' && method === 'GET') return json(200, this.usage.snapshot());
       if (m[2] === 'audit' && method === 'GET') {
         const q = ctx.url.searchParams;
@@ -463,7 +526,13 @@ export class HeadlessApp {
       (this.snapshot.accountSlug && this.snapshot.slug
         ? `https://${this.snapshot.accountSlug}.knack.com/${this.snapshot.slug}#home/forgot-password`
         : '');
-    return json(200, { appName: config.appName, passwordResetUrl: reset, tier: config.tier, timezone: this.model.timezone });
+    return json(200, {
+      appName: config.appName,
+      passwordResetUrl: reset,
+      tier: config.tier,
+      timezone: this.model.timezone,
+      demo: config.demoMode ? { logins: config.demoLogins } : null,
+    });
   }
 
   private async login(request: Request, ip: string, secure: boolean): Promise<Response> {
@@ -950,7 +1019,7 @@ export class HeadlessApp {
         };
       }),
     }));
-    return { roles, warnings: this.derived.warnings };
+    return { roles, warnings: this.derived.warnings, features: this.features };
   }
 
   private describeGrant(entity: EntityModel, grant: import('../access/derive.js').Grant): string {

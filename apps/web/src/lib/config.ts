@@ -7,6 +7,8 @@ export interface PublicConfig {
   passwordResetUrl: string;
   tier: 'hipaa' | 'standard';
   timezone: string;
+  /** Present only on a demo deployment (DEMO_MODE=true on the server). */
+  demo: { logins: { label: string; email: string; password: string }[] } | null;
 }
 
 export const useConfig = () =>

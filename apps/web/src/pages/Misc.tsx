@@ -3,7 +3,7 @@ import { ClockIcon } from '@heroicons/react/24/outline';
 import { Button } from '@fmc/knack-ui';
 import { useSession } from '../lib/session';
 import { useConfig } from '../lib/config';
-import { Brand } from '../components/Shell';
+import { Brand, DevelopedBy } from '../components/Shell';
 import { useTitle } from '../lib/hooks';
 
 /** Signed in, but no role in this app yet (Knack's generic "all users" only). */
@@ -27,6 +27,7 @@ export const Welcome = () => {
           Sign out
         </Button>
       </div>
+      <DevelopedBy className="mt-8" />
     </div>
   );
 };
@@ -41,6 +42,7 @@ export const NotFound = () => {
       <Link to="/" className="mt-6 inline-block text-sm font-medium text-brand-700 hover:underline">
         Go to your home page
       </Link>
+      <DevelopedBy className="mt-16" />
     </div>
   );
 };

@@ -24,7 +24,27 @@ export interface CoreConfig {
   syncMinutes: number;
   /** Knack's metadata endpoint base (GovCloud tenants may differ). */
   loaderUrl: string;
+  /**
+   * Demo deployment: the sign-in page says it is a test with demo data only,
+   * and lists `demoLogins` for one-click sign-in. Off unless DEMO_MODE=true.
+   */
+  demoMode: boolean;
+  demoLogins: DemoLogin[];
 }
+
+export interface DemoLogin {
+  label: string;
+  email: string;
+  password: string;
+}
+
+/** DEMO_LOGINS=Label|email|password;Label|email|password */
+const parseDemoLogins = (value: string | undefined): DemoLogin[] =>
+  (value ?? '')
+    .split(';')
+    .map((entry) => entry.split('|').map((part) => part.trim()))
+    .filter((parts) => parts.length === 3 && parts.every(Boolean) && parts[1]!.includes('@'))
+    .map(([label, email, password]) => ({ label: label!, email: email!, password: password! }));
 
 export class ConfigError extends Error {}
 
@@ -72,6 +92,15 @@ export const loadConfig = (env: Record<string, string | undefined>): CoreConfig 
     );
   }
 
+  const demoMode = bool(env.DEMO_MODE);
+  /*
+   * Demo logins are published on the sign-in page. They only make sense for a
+   * deployment that holds synthetic data, so the GovCloud host refuses them.
+   */
+  if (demoMode && knackApiHost !== COMMERCIAL_HOST) {
+    problems.push('DEMO_MODE=true is for synthetic demo data on the commercial host only. Turn it off for a HIPAA tenant.');
+  }
+
   if (problems.length) throw new ConfigError(`Configuration invalid:\n  - ${problems.join('\n  - ')}`);
 
   return Object.freeze({
@@ -88,5 +117,7 @@ export const loadConfig = (env: Record<string, string | undefined>): CoreConfig 
     passwordResetUrl: env.PASSWORD_RESET_URL?.trim() ?? '',
     syncMinutes: env.SYNC_MINUTES === '0' ? 0 : num(env.SYNC_MINUTES, 5),
     loaderUrl: env.KNACK_LOADER_URL?.trim() || 'https://loader.knack.com/v1',
+    demoMode,
+    demoLogins: demoMode ? parseDemoLogins(env.DEMO_LOGINS) : [],
   });
 };

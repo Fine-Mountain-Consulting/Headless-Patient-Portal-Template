@@ -16,6 +16,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { fileURLToPath } from 'node:url';
 import { HeadlessApp, loadConfig, SECURITY_HEADERS, staticResponse, type AppSnapshot } from '@headless/core';
 import { FirestoreAuditStore } from './firestoreAudit.js';
+import { FirestoreFeatureStore } from './firestoreFeatures.js';
 
 const KNACK_API_KEY = defineSecret('KNACK_API_KEY');
 const SESSION_SECRET = defineSecret('SESSION_SECRET');
@@ -30,6 +31,7 @@ const getApp = (): HeadlessApp => {
       config: loadConfig({ ...process.env, KNACK_API_KEY: KNACK_API_KEY.value(), SESSION_SECRET: SESSION_SECRET.value() }),
       snapshot,
       audit: new FirestoreAuditStore(),
+      features: new FirestoreFeatureStore(),
     });
   }
   return app;

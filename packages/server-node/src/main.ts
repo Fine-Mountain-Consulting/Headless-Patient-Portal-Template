@@ -14,6 +14,7 @@ import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { HeadlessApp, loadConfig, staticResponse, type AppSnapshot } from '@headless/core';
 import { FileAuditStore } from './fileAudit.js';
+import { FileFeatureStore } from './fileFeatures.js';
 import { SECURITY_HEADERS } from './headers.js';
 
 const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -31,6 +32,7 @@ const app = new HeadlessApp({
   config,
   snapshot,
   audit: new FileAuditStore(resolve(root, process.env.DATA_DIR ?? 'data')),
+  features: new FileFeatureStore(resolve(root, process.env.DATA_DIR ?? 'data')),
   // Keep the newest structure (and its locked names) across restarts.
   onSnapshot: async (next) => {
     const tmp = `${snapshotPath}.tmp`;

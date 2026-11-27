@@ -130,5 +130,67 @@
     "timeOffStarts": "Starts",
     "timeOffEnds": "Ends",
     "timeOffDoctor": "Doctor"
+  },
+  "features": {
+    "$comment": "Abilities the portal adds that the stock Knack template has no page for. Each is OFF until a Headless Admin switches it on (Admin > Overview > Portal features). Grants are always limited to the signed-in user’s own records, and show in the Access map as \"Portal feature\". Everything else comes from the Knack pages.",
+    "online-booking": {
+      "title": "Online booking",
+      "description": "Patients book their own appointments: they pick a date and time, then a doctor who is free. Appointments are created for the signed-in patient only, with Status = Scheduled.",
+      "grants": [
+        {
+          "role": "patient",
+          "entity": "Appointments",
+          "actions": [
+            "create"
+          ],
+          "own": "Patient",
+          "fields": [
+            "Date of Appointment",
+            "Doctor",
+            "Reason for Appointment"
+          ],
+          "set": {
+            "Status": "Scheduled"
+          }
+        }
+      ]
+    },
+    "doctor-availability": {
+      "title": "Doctor availability",
+      "description": "Doctors set their own working days and hours, appointment length and whether they take online bookings, and add or remove their own time off. Online booking uses all of it.",
+      "grants": [
+        {
+          "role": "doctor",
+          "entity": "Doctors",
+          "actions": [
+            "read",
+            "update"
+          ],
+          "own": "self",
+          "fields": [
+            "Available Days",
+            "Day Starts",
+            "Day Ends",
+            "Appointment Length",
+            "Online Booking"
+          ]
+        },
+        {
+          "role": "doctor",
+          "entity": "Doctor Time Off",
+          "actions": [
+            "read",
+            "create",
+            "delete"
+          ],
+          "own": "Doctor",
+          "fields": [
+            "Starts",
+            "Ends",
+            "Reason"
+          ]
+        }
+      ]
+    }
   }
 }

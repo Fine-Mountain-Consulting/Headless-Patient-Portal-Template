@@ -71,4 +71,11 @@ if (derived.warnings.length) {
   console.warn('\nWarnings:');
   for (const w of derived.warnings) console.warn(`  ! ${w}`);
 }
+const features = core.applyFeatures(core.derivePolicy(snapshot, model), model, manifest, {});
+if (features.length) {
+  console.log('\nPortal features (switched on by a Headless Admin in the portal):');
+  for (const f of features) {
+    console.log(`  ${f.available ? '•' : '✗'} ${f.title}${f.available ? '' : ` (can't be switched on: ${f.problems.join(' ')})`}`);
+  }
+}
 console.log('\nSnapshot written to .knack/snapshot.json (git-ignored). Run "npm run access" for the full report.\n');
