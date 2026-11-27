@@ -3,6 +3,10 @@
 #
 # pull_request_target runs in this repo's context (so it may close the PR), but
 # it never checks out or runs the pull request's code: only the gh CLI below.
+#
+# author_association alone is not enough: an org member whose membership is
+# private is reported as CONTRIBUTOR, so their own pull requests were closed
+# (PR #10). Anyone with write access to this repo is kept as well.
 name: Close outside pull requests
 
 on:
@@ -14,13 +18,25 @@ permissions:
 
 jobs:
   close:
-    if: ${{ !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) }}
     runs-on: ubuntu-latest
     steps:
-      - name: Close with a note
+      - name: Close unless the author is part of the team
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          ASSOC: ${{ github.event.pull_request.author_association }}
         run: |
+          case "$ASSOC" in
+            OWNER|MEMBER|COLLABORATOR)
+              echo "Author association $ASSOC: keeping the pull request."
+              exit 0 ;;
+          esac
+          perm=$(gh api "repos/$REPO/collaborators/$AUTHOR/permission" --jq .permission 2>/dev/null || echo none)
+          case "$perm" in
+            admin|maintain|write)
+              echo "Author has $perm access: keeping the pull request."
+              exit 0 ;;
+          esac
           gh pr close "$PR" --repo "$REPO" --comment "Thanks for your interest. This repository doesn't accept outside contributions, so this pull request has been closed automatically. You're welcome to fork it and change your copy under the MIT license. For help with setup or changes, contact Fine Mountain Consulting: https://finemountainconsulting.com"
