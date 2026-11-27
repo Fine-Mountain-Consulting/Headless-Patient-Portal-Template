@@ -93,6 +93,8 @@ export const RecordPage = ({
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  /** Optional "why", kept in the activity log beside who deleted it and when. */
+  const [reason, setReason] = useState('');
   const record = q.data?.record;
   useTitle(entity && record ? recordTitle(entity, record) : entity?.name);
 
@@ -174,14 +176,35 @@ export const RecordPage = ({
       )}
       <ConfirmDialog
         open={confirming}
-        onClose={() => setConfirming(false)}
+        onClose={() => {
+          setConfirming(false);
+          setReason('');
+        }}
         destructive
         title={`Delete this ${singular(entity.name).toLowerCase()}?`}
-        message="This permanently removes the record. Related records are not deleted. This can't be undone."
+        message={
+          <>
+            <p>This permanently removes the record. Related records are not deleted. This can’t be undone.</p>
+            <label className="mt-3 block text-left">
+              <span className="text-xs font-medium text-steel-700">Reason (optional)</span>
+              <input
+                type="text"
+                value={reason}
+                maxLength={500}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Why is this being deleted?"
+                className="mt-1 block w-full rounded-lg border border-steel-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              />
+              {/* Optional on purpose: a required reason gets "asdf", which is worse than an honest blank. */}
+              <span className="mt-1 block text-xs text-steel-500">Kept in the activity log with who deleted it and when.</span>
+            </label>
+          </>
+        }
         confirmLabel="Delete"
         onConfirm={async () => {
           try {
-            await del.mutateAsync({ id, source: `${entity.slug}-record` });
+            await del.mutateAsync({ id, source: `${entity.slug}-record`, reason: reason.trim() || undefined });
+            setReason('');
             toast('Deleted');
             navigate(backTo ?? `${base}/data/${entity.slug}`);
           } catch (e) {

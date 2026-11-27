@@ -9,6 +9,7 @@ It follows the split Knack describes: the **Knack MCP server** at build time, so
 - **Patients:** home dashboard, appointments (list and calendar), online booking, test results, medications, secure messages, documents, emergency contacts.
 - **Doctors:** today's schedule, calendar, patient charts with results, prescriptions, documents and visit notes, messages, and their own availability and time off.
 - **Medical staff:** front-desk view of today across all doctors with one-tap status changes, and every table their Knack pages give them.
+- **Every table:** search (and choose which field to search), filter by status-type fields, sort, group rows, add, remove and reorder columns, and edit cells in place where the role may. Each table remembers its layout in the browser; search text is never stored.
 - **Headless Admin:** all data, **portal feature switches**, an **Access map** showing what each role can do and why, an activity log, Knack API usage, and Knack sync status.
 
 > [!IMPORTANT]
