@@ -305,6 +305,9 @@ export class HeadlessApp {
       const session = await this.sessions.verify(readCookie(request.headers.get('cookie'), SESSION_COOKIE));
       if (!session) {
         if (path === '/api/session/logout') return json(200, { ok: true }, { 'Set-Cookie': this.sessions.clearCookie(secure) });
+        // "Is anyone signed in?" on page load: not signed in is an answer, not
+        // an error. (A 401 here showed as a failed request in every console.)
+        if (path === '/api/session' && request.method === 'GET') return json(200, null, { 'Set-Cookie': this.sessions.clearCookie(secure) });
         return json(401, errorBody('Your session has ended. Sign in again.'), {
           'Set-Cookie': this.sessions.clearCookie(secure),
         });
