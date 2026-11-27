@@ -63,12 +63,34 @@ Open http://localhost:5173 and sign in with a Knack user.
 
 **Keep the REST API key out of files.** Pass it on the command line locally, and use Secret Manager (Firebase) or your host's secret store in production. `npm run check:keys` (also run in CI) fails if a key, secret or Knack id appears in the repo or the built app.
 
-For demo data on a **non-HIPAA test app only**:
+## Demo deployment
 
-```bash
-KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email a-patient@example.com
-KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email a-patient@example.com --remove
-```
+For showing the portal to people, on a **non-HIPAA test app with synthetic data only**. Both scripts refuse the GovCloud host.
+
+1. Create one login per role (Patient, Doctor, Medical staff, Admin), all at `@example.com` addresses. The demo patient's primary doctor is the demo doctor. Running it again resets the passwords.
+
+   ```bash
+   KNACK_API_KEY=your-key node scripts/demo-logins.mjs --password 'choose-a-demo-password'
+   ```
+
+2. Fill the demo patient with synthetic appointments, results, medications, messages, documents, contacts and visit notes. Every record created is listed in `.knack/` so `--remove` deletes exactly those.
+
+   ```bash
+   KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email demo.patient@example.com \
+     --doctor demo.doctor@example.com --staff demo.staff@example.com
+   KNACK_API_KEY=your-key node scripts/seed-demo.mjs --email demo.patient@example.com --remove
+   ```
+
+3. Add the two lines the first script prints to `.env` (or your host's config):
+
+   ```bash
+   DEMO_MODE=true
+   DEMO_LOGINS=Patient|demo.patient@example.com|…;Doctor|demo.doctor@example.com|…
+   ```
+
+With `DEMO_MODE=true`, the sign-in page says this is a test site: no PHI, no HIPAA compliance implied or performed, demo data only. It lists the demo logins for one-click sign-in. The server refuses `DEMO_MODE` on the GovCloud host.
+
+**The demo logins are public.** Anyone who opens the page can use them. The Admin login can change or delete every record and switch portal features, so leave it out of `DEMO_LOGINS` for a public demo, or reset the data regularly.
 
 ## Keeping up with Knack
 
@@ -136,7 +158,7 @@ The headless app can only be as compliant as everything it runs on. Before the f
 3. **Front door.** The function is the front door, with no Firebase Hosting in front of it (see Deploy). If you add a custom domain, use Cloud Run domain mapping or an HTTPS load balancer. This template signs people in with its own Knack-backed session, not Firebase Auth. If you add Firebase sign-in, upgrade it to **Identity Platform**, which the BAA covers; plain Firebase Auth is not.
 4. **Retention** for the activity log, agreed with the practice. Leave `AUDIT_VALUES=false` unless the practice needs before/after values (which makes the log itself PHI).
 5. **Lock down Knack's own live app.** It is still reachable at your Knack URL. Remove public pages, or turn the live app off once the headless portal replaces it.
-6. **Never run `seed-demo.mjs` against a real tenant.** It refuses GovCloud hosts.
+6. **Demo mode off.** `DEMO_MODE` unset, and never run `seed-demo.mjs` or `demo-logins.mjs` against a real tenant. All three are refused on GovCloud hosts.
 
 ## Repository layout
 
@@ -147,6 +169,6 @@ The headless app can only be as compliant as everything it runs on. Before the f
 | [packages/server-firebase](packages/server-firebase) | Runs core as a Firebase Cloud Function. |
 | [apps/web](apps/web) | The React app (Vite, Tailwind, TanStack Query, [@fmc/knack-ui](https://github.com/Fine-Mountain-Consulting/knack-ui)). |
 | [templates/patient-portal](templates/patient-portal) | What this template needs from the Knack app, by name. |
-| [scripts](scripts) | `sync`, `access-report`, `seed-demo`, `check-no-keys`, `dev`. |
+| [scripts](scripts) | `sync`, `access-report`, `check-no-keys`, `dev`, and for demo apps `demo-logins` and `seed-demo`. |
 
 `npm run verify` runs what CI runs: key check, typecheck, tests, build.

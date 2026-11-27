@@ -137,7 +137,7 @@ if (!patient[`${pf('Doctor')}_raw`]?.length) profile[pf('Doctor')] = [primary.id
 if (!patient[pf('Date of Birth')]) profile[pf('Date of Birth')] = { date: '06/14/1984' };
 if (!patient[pf('Phone')]) profile[pf('Phone')] = '(555) 014-2266';
 if (!patient[pf('Address')]) profile[pf('Address')] = { street: '100 Demo Way', city: 'Springfield', state: 'VT', zip: '05156' };
-if (!patient[pf('Emergency Contact')]) profile[pf('Emergency Contact')] = 'Jordan Marshall (spouse)';
+if (!patient[pf('Emergency Contact')]) profile[pf('Emergency Contact')] = 'Jordan Lee (spouse)';
 if (!patient[pf('Emergency Phone')]) profile[pf('Emergency Phone')] = '(555) 019-9001';
 if (Object.keys(profile).length) {
   await call('PUT', `/objects/${O.patients.key}/records/${P}`, profile);
@@ -291,7 +291,7 @@ console.log('  documents: 2');
 
 // ── Emergency contacts ────────────────────────────────────────────────────
 const cf = (n) => O.contacts.f(n);
-await create(O.contacts, { [cf('Name')]: 'Jordan Marshall', [cf('Phone')]: '(555) 019-9001', [cf('Email')]: { email: 'jordan.demo@example.com' }, [cf('Address')]: { street: '100 Demo Way', city: 'Springfield', state: 'VT', zip: '05156' }, [cf('Patient')]: [P] }, 'contact Jordan');
+await create(O.contacts, { [cf('Name')]: 'Jordan Lee', [cf('Phone')]: '(555) 019-9001', [cf('Email')]: { email: 'jordan.demo@example.com' }, [cf('Address')]: { street: '100 Demo Way', city: 'Springfield', state: 'VT', zip: '05156' }, [cf('Patient')]: [P] }, 'contact Jordan');
 await create(O.contacts, { [cf('Name')]: 'Casey Rivera', [cf('Phone')]: '(555) 012-3456', [cf('Email')]: { email: 'casey.demo@example.com' }, [cf('Patient')]: [P] }, 'contact Casey');
 console.log('  emergency contacts: 2');
 
