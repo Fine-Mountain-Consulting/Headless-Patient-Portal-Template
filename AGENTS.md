@@ -27,6 +27,8 @@ If it isn't connected, tell the user how for their tool, for example Claude Code
 
 Without MCP everything below can still be done by the user in the Knack Builder; tell them exactly what to click.
 
+**On an app with real patients, never read or query records** (MCP `queryDatabase`, record tools, the REST API, `npm run` scripts that print records). AI tools don't sign BAAs, so PHI must not pass through you. Inspecting the schema (tables, fields, roles) is fine; it holds no PHI. Synthetic test apps are fine.
+
 ### 2. Find the app id
 
 Use the MCP `resolveApplication` tool with the app's name. The id is 24 hex characters. (The user can also read it from the Builder URL.) The app id is not secret, but don't write it into any tracked file: it goes in `.env` only.
