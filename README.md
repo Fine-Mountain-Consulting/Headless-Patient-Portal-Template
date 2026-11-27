@@ -9,6 +9,49 @@ A modern patient portal that sits on top of the Knack **Patient Portal** templat
 
 > **Compliance tier: HIPAA.** A patient portal holds protected health information. Read [Before real patients use it](#before-real-patients-use-it) before you put real data in it.
 
+## Set it up
+
+You need a Knack app built from the **Patient Portal** template (any Knack plan for testing; a **HIPAA plan** for real patients), Node 22, and the app's **REST API key** (Knack Builder → Settings → API & Code).
+
+**Need help?** Fine Mountain Consulting can configure and install it for you: [finemountainconsulting.com](https://finemountainconsulting.com).
+
+### With your AI assistant (recommended)
+
+1. Open this repo in your AI coding tool (Claude Code, Cursor, Codex, Copilot…).
+2. Connect it to **your** Knack account through Knack's MCP server, `https://mcp.knack.com/mcp`. In Claude Code: `claude mcp add --transport http knack https://mcp.knack.com/mcp`. In other tools, add a remote (HTTP) MCP server with that URL.
+3. Ask: *"Set up this portal for my Knack app"*.
+
+[AGENTS.md](AGENTS.md) gives the assistant the whole procedure. It finds your app, creates `.env`, adds what the template needs to your Knack app (such as the Headless Admin role and your admin login), checks everything with `npm run setup`, and starts the portal. It will ask you for the REST API key when it needs it; the key is passed on the command line and never saved to a file.
+
+### By hand
+
+1. **Install and configure.** The app id is the 24-character id in your Knack Builder URL.
+
+   ```bash
+   npm install
+   npm run setup -- --app-id <your app id> --test    # test app with synthetic data
+   npm run setup -- --app-id <your app id> --hipaa   # HIPAA plan (GovCloud), for real patients
+   ```
+
+   This creates `.env` (git-ignored) with a fresh session secret and the right Knack host, reads your app's structure, and lists anything missing with the fix.
+
+2. **Add the Headless Admin role in Knack.** The stock template doesn't have it. In the Knack Builder, add a **user role** named exactly `Headless Admin`, then add yourself to it (name, email, password, status Active). This is the login that administers the portal.
+
+3. **Optional: online booking.** Add the fields and table listed under [Online booking](#online-booking). Without them the feature stays off; everything else works.
+
+4. **Check, then run.**
+
+   ```bash
+   KNACK_API_KEY=your-key npm run setup   # adds live checks: key accepted, admin user exists
+   KNACK_API_KEY=your-key npm run dev
+   ```
+
+   Open http://localhost:5173 and sign in as your Headless Admin user.
+
+Run `npm run setup` any time: it's safe to repeat and tells you exactly what's left.
+
+**Keep the REST API key out of files.** Pass it on the command line locally, and use Secret Manager (Firebase) or your host's secret store in production. `npm run check:keys` (also run in CI) fails if a key, secret or Knack id appears in the repo or the built app.
+
 ## How access works
 
 **Access is whatever your Knack app says it is.** The server reads your Knack pages and enforces the same rules:
@@ -47,21 +90,6 @@ Features are defined in [templates/patient-portal/manifest.json](templates/patie
 - Roles are re-checked against Knack every 2 minutes, so a removed role or deactivated account stops working without waiting for sign-out.
 - Every sign-in, record view, list, download, upload, create, update and delete is written to an append-only activity log.
 - File downloads go through the server, which checks access and logs the download first. Knack's asset links open without any credential, so they never reach the browser.
-
-## Quick start (local)
-
-Requirements: Node 22, a Knack app built from the Patient Portal template, its **app ID** and **REST API key** (Knack Builder → Settings → API & Code).
-
-```bash
-npm install
-cp .env.example .env          # fill in KNACK_APP_ID and SESSION_SECRET
-                              # (openssl rand -base64 48)
-KNACK_API_KEY=your-key npm run dev
-```
-
-Open http://localhost:5173 and sign in with a Knack user.
-
-**Keep the REST API key out of files.** Pass it on the command line locally, and use Secret Manager (Firebase) or your host's secret store in production. `npm run check:keys` (also run in CI) fails if a key, secret or Knack id appears in the repo or the built app.
 
 ## Demo deployment
 
@@ -125,6 +153,8 @@ One Cloud Function (`api`) serves the whole site: the built web app and the API,
 
 **No Firebase Hosting.** Hosting is not a covered service under Google's HIPAA BAA, and a Hosting rewrite would carry every patient request through it. Cloud Functions, Cloud Run and Firestore are covered. One origin also keeps the session cookie first-party.
 
+Before the first deploy: install the [Firebase CLI](https://firebase.google.com/docs/cli), create a Firebase project on the **Blaze** plan (Cloud Functions need it), create a **Firestore** database in it, then run `firebase login` and `firebase use --add` in this folder.
+
 ```bash
 npm run sync
 firebase functions:secrets:set KNACK_API_KEY
@@ -169,6 +199,12 @@ The headless app can only be as compliant as everything it runs on. Before the f
 | [packages/server-firebase](packages/server-firebase) | Runs core as a Firebase Cloud Function. |
 | [apps/web](apps/web) | The React app (Vite, Tailwind, TanStack Query, [@fmc/knack-ui](https://github.com/Fine-Mountain-Consulting/knack-ui)). |
 | [templates/patient-portal](templates/patient-portal) | What this template needs from the Knack app, by name. |
-| [scripts](scripts) | `sync`, `access-report`, `check-no-keys`, `dev`, and for demo apps `demo-logins` and `seed-demo`. |
+| [scripts](scripts) | `setup`, `sync`, `access-report`, `check-no-keys`, `dev`, and for demo apps `demo-logins` and `seed-demo`. |
 
 `npm run verify` runs what CI runs: key check, typecheck, tests, build.
+
+Working on the code with an AI assistant? [AGENTS.md](AGENTS.md) has the rules it must follow.
+
+## Help
+
+Fine Mountain Consulting built this template and can configure, install or extend it for you: [finemountainconsulting.com](https://finemountainconsulting.com).
