@@ -24,9 +24,11 @@ check() {
 }
 
 # Knack REST API keys are UUIDs.
-check "UUID-shaped value (a Knack REST API key looks like this)" '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$files $bundles"
-# Knack app ids are 24 hex characters.
-check "24-hex Knack id (app or record id) in source" "['\"=: ][0-9a-f]{24}['\"]" "$files"
+# Any case, anywhere: a key pasted bare into prose or a script counts too.
+check "UUID-shaped value (a Knack REST API key looks like this)" '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' "$files $bundles"
+# Knack app and record ids are 24 hex characters: any standalone 24-hex token,
+# quoted or not (e.g. an app id pasted into the README).
+check "24-hex Knack id (app or record id)" '(^|[^0-9a-fA-F])[0-9a-fA-F]{24}([^0-9a-fA-F]|$)' "$files"
 # Assignments of secrets.
 check "secret assigned in a tracked file" '(KNACK_API_KEY|SESSION_SECRET)=[A-Za-z0-9+/_=-]{16,}' "$files"
 check "X-Knack-REST-API-Key with a literal value" "X-Knack-REST-API-Key['\"]?[[:space:]]*:[[:space:]]*['\"][^'\"]" "$files $bundles"

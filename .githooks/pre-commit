@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Refuse a commit that would put a Knack key, app id or secret in this public
+# repo. Installed by `npm install` (the "prepare" script sets core.hooksPath).
+exec bash scripts/check-no-keys.sh
