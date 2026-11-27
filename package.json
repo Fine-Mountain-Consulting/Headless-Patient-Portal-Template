@@ -20,6 +20,7 @@
     "build:firebase": "npm run build -w @headless/core && npm run build -w @headless/web && npm run build -w @headless/server-firebase",
     "start": "node packages/server-node/dist/main.js",
     "setup": "node scripts/setup.mjs",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test -w @headless/core",
     "check:keys": "bash scripts/check-no-keys.sh",
