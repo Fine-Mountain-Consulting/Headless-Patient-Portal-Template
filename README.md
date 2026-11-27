@@ -1,6 +1,10 @@
 # Headless Patient Portal for Knack
 
-A modern patient portal that sits on top of Knack's **Patient Portal Template** app. Knack stays the database and the place you manage users and access. This replaces Knack's built-in pages with a fast, mobile-first app for patients, doctors, staff and administrators.
+A ready-made **headless Knack** app: a modern patient portal on top of Knack's **Patient Portal Template**. Knack stays the backend data layer and the place you manage users and access; this repo is the separately built front end, a fast, mobile-first app for patients, doctors, staff and administrators. (New to the idea? Read Knack's [What Is Headless Knack and When Does It Make Sense?](https://www.knack.com/blog/headless-knack/))
+
+It follows the split Knack describes: the **Knack MCP server** at build time, so your AI assistant can read your app's schema and set this up against your real tables and fields, and the **Knack API** at runtime for every record operation, called only from this app's server. You don't build the front end yourself; it's already built, tested and HIPAA-minded. You point it at your Knack app.
+
+**Try the demo:** https://api-2e5kvldfgq-uc.a.run.app (synthetic data; the sign-in page lists demo logins).
 
 - **Patients:** home dashboard, appointments (list and calendar), online booking, test results, medications, secure messages, documents, emergency contacts.
 - **Doctors:** today's schedule, calendar, patient charts with results, prescriptions, documents and visit notes, messages, and their own availability and time off.
@@ -13,6 +17,8 @@ A modern patient portal that sits on top of Knack's **Patient Portal Template** 
 > - you have a signed **Business Associate Agreement (BAA) with Knack** (a Knack HIPAA plan);
 > - you have a signed **BAA with your hosting provider** (for example Google Cloud for Firebase), covering every service that handles PHI;
 > - you have done the rest of [Before real patients use it](#before-real-patients-use-it), plus your organization's own HIPAA risk assessment, policies and training.
+>
+> AI coding tools (Claude Code, Cursor, Lovable, Base44 and others) generally **don't sign BAAs**. Use them to set up and change the code, never to view or handle real patient records.
 >
 > HIPAA compliance is your responsibility. Fine Mountain Consulting and the contributors to this repo make no guarantee of compliance and accept no liability for how it is deployed or used. Until those steps are done, use synthetic test data only.
 
