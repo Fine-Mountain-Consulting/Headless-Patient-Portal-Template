@@ -5,7 +5,7 @@ import { Button, FormField, TextInput } from '@fmc/knack-ui';
 import { ApiError } from '../lib/api';
 import { useSession } from '../lib/session';
 import { useConfig } from '../lib/config';
-import { Brand } from '../components/Shell';
+import { Brand, DevelopedBy } from '../components/Shell';
 import { useTitle } from '../lib/hooks';
 
 const REASONS: Record<string, string> = {
@@ -213,6 +213,7 @@ export const SignIn = () => {
           <p className="mt-10 text-center text-xs text-steel-400">
             For a medical emergency, call 911. Don’t use this portal for urgent needs.
           </p>
+          <DevelopedBy className="mt-4" />
         </div>
       </main>
     </div>

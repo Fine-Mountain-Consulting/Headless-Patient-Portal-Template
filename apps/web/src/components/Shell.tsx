@@ -18,6 +18,24 @@ export interface ShellNavItem {
   end?: boolean;
 }
 
+/**
+ * Template credit, shown on every screen. A plain link: no script, no
+ * tracking, and no referrer, so portal paths never reach the other site.
+ */
+export const DevelopedBy = ({ className }: { className?: string }) => (
+  <p className={cx('text-center text-xs text-steel-400', className)}>
+    Developed by{' '}
+    <a
+      href="https://finemountainconsulting.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-steel-500 underline-offset-2 hover:text-brand-700 hover:underline"
+    >
+      Fine Mountain Consulting LLC
+    </a>
+  </p>
+);
+
 export const Brand = ({ appName }: { appName: string }) => (
   <span className="flex items-center gap-2.5">
     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm" aria-hidden="true">
@@ -66,6 +84,9 @@ export const Shell = ({
       >
         <main id="main" className={cx('focus:outline-none', tabs.length > 0 && 'pb-safe lg:pb-0')} tabIndex={-1}>
           {children}
+          <footer className="px-4 pb-6 pt-10">
+            <DevelopedBy />
+          </footer>
         </main>
       </AppShell>
       {tabs.length > 0 && (
