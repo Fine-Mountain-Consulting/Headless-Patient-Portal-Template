@@ -219,3 +219,7 @@ Working on the code with an AI assistant? [AGENTS.md](AGENTS.md) has the rules i
 ## Help
 
 Fine Mountain Consulting built this template and can configure, install or extend it for you: [finemountainconsulting.com](https://finemountainconsulting.com).
+
+## License
+
+[MIT](LICENSE) © Fine Mountain Consulting LLC. You may use, change and redistribute this code, including commercially, as long as you keep the copyright and license notice. It comes with no warranty; see the HIPAA notice at the top.
