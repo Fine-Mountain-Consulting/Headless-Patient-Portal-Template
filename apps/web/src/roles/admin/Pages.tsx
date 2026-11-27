@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { AdjustmentsHorizontalIcon, ArrowPathIcon, CheckIcon, ExclamationTriangleIcon, ShieldCheckIcon, CircleStackIcon, BoltIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
-import { Button, cx, PageHeader, Select, StatTile, Switch } from '@fmc/knack-ui';
+import { Button, cx, PageHeader, Select, StatTile, Switch } from '../../ui';
 import { api, ApiError } from '../../lib/api';
 import { useList } from '../../lib/records';
 import { useSchema } from '../../lib/schema';

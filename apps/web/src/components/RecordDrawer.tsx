@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowTopRightOnSquareIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { Button, ConfirmDialog, SlideOver } from '@fmc/knack-ui';
+import { Button, ConfirmDialog, SlideOver } from '../ui';
 import { useDelete, useRecord, useUpdate, type Rec } from '../lib/records';
 import type { EntityInfo } from '../lib/schema';
 import { RecordFields, RecordForm } from './fields';

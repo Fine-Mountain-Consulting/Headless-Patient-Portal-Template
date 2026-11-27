@@ -21,7 +21,7 @@ import {
   SunIcon,
   MoonIcon,
 } from '@heroicons/react/24/outline';
-import { Button, cx, Select, TextArea } from '@fmc/knack-ui';
+import { Button, cx, Select, TextArea } from '../../ui';
 import { api, ApiError } from '../../lib/api';
 import { asText, refId, useList } from '../../lib/records';
 import { addDays, timezone, todayKey } from '../../lib/format';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CalendarDaysIcon, CheckCircleIcon, UserGroupIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { cx, PageHeader, Select, StatTile } from '@fmc/knack-ui';
+import { cx, PageHeader, Select, StatTile } from '../../ui';
 import { useSession } from '../../lib/session';
 import { asText, refName, useList, useUpdate, type Rec } from '../../lib/records';
 import { entityOf, fieldOf, useSchema } from '../../lib/schema';

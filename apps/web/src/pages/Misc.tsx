@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ClockIcon } from '@heroicons/react/24/outline';
-import { Button } from '@fmc/knack-ui';
+import { Button } from '../ui';
 import { useSession } from '../lib/session';
 import { useConfig } from '../lib/config';
 import { Brand, DevelopedBy } from '../components/Shell';

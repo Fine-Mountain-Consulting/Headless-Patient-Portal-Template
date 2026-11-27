@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fmc/knack-core": "github:Fine-Mountain-Consulting/knack-core#v1.0.1",
-    "@fmc/knack-ui": "github:Fine-Mountain-Consulting/knack-ui#v2.1.3",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@tanstack/react-query": "^5.62.0",

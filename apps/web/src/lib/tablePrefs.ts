@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { ColumnLayout, SortState } from '@fmc/knack-ui';
+import type { ColumnLayout, SortState } from '../ui';
 
 /**
  * How someone likes to read one table, remembered in this browser.

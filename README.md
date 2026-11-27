@@ -215,7 +215,7 @@ This code does not make a deployment HIPAA compliant; it can only be as complian
 | [packages/core](packages/core) | Platform-neutral server: Knack client, app model, access policy derived from Knack pages, sessions, booking, the HTTP API. No platform imports. |
 | [packages/server-node](packages/server-node) | Runs core on any Node host. |
 | [packages/server-firebase](packages/server-firebase) | Runs core as a Firebase Cloud Function. |
-| [apps/web](apps/web) | The React app (Vite, Tailwind, TanStack Query, [@fmc/knack-ui](https://github.com/Fine-Mountain-Consulting/knack-ui)). |
+| [apps/web](apps/web) | The React app (Vite, Tailwind, TanStack Query, its own UI components in `src/ui`). |
 | [templates/patient-portal](templates/patient-portal) | What this template needs from the Knack app, by name. |
 | [scripts](scripts) | `setup`, `sync`, `access-report`, `check-no-keys`, `dev`, and for demo apps `demo-logins` and `seed-demo`. |
 

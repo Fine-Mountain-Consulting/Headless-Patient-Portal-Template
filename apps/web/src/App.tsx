@@ -16,7 +16,7 @@ import {
   TableCellsIcon,
   IdentificationIcon,
 } from '@heroicons/react/24/outline';
-import { Spinner } from '@fmc/knack-ui';
+import { Spinner } from './ui';
 import { useSession } from './lib/session';
 import { useConfig } from './lib/config';
 import { entityOf, useSchema, type Schema } from './lib/schema';

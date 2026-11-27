@@ -1,6 +1,6 @@
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import { ClockIcon } from '@heroicons/react/24/outline';
-import { Button } from '@fmc/knack-ui';
+import { Button } from '../ui';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../lib/session';
 

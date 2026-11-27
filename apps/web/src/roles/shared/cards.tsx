@@ -3,7 +3,7 @@
  */
 import type { ReactNode } from 'react';
 import { ChevronRightIcon, ClockIcon, UserIcon } from '@heroicons/react/24/outline';
-import { cx } from '@fmc/knack-ui';
+import { cx } from '../../ui';
 import { formatTime, isPast, relative } from '../../lib/format';
 import { asText, refName, type Rec } from '../../lib/records';
 import { DateTile, StatusPill } from '../../components/ui';
